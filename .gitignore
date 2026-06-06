@@ -156,7 +156,6 @@ logs/
 
 # Saved models, checkpoints and weights
 checkpoints/
-models/
 *.pth
 *.pt
 *.onnx
