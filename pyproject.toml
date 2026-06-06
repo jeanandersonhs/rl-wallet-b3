@@ -11,7 +11,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "numpy (>=2.4.6,<3.0.0)"
+    "numpy (>=2.4.6,<3.0.0)",
+    "seaborn (>=0.13.2,<0.14.0)",
 ]
 
 
