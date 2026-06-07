@@ -1,0 +1,496 @@
+================================================================================
+       DOCUMENTAÇÃO COMPLETA — RL-WALLET-B3
+       Agente de Reinforcement Learning para Gestão de Portfólio (B3)
+================================================================================
+
+Data: 2026-06-07
+Autor: jeanandersonhs
+
+════════════════════════════════════════════════════════════════════════════════
+1. DEFINIÇÃO DO PROBLEMA
+════════════════════════════════════════════════════════════════════════════════
+
+1.1 Objetivo
+────────────
+Desenvolver um agente inteligente baseado em Aprendizado por Reforço (RL) capaz
+de gerenciar um portfólio de investimentos na B3, decidindo como distribuir o
+capital entre diferentes ativos ao longo do tempo. O objetivo é maximizar o
+retorno financeiro ajustado ao risco.
+
+1.2 Motivação
+─────────────
+O mercado financeiro é dinâmico e não-estacionário. O investidor precisa revisar
+e rebalancear sua carteira periodicamente — um problema de decisão sequencial,
+ideal para modelagem com RL.
+
+1.3 Restrição de Escopo
+───────────────────────
+A combinação do espaço de estados explode exponencialmente com o número de
+ativos. Solução: fixar N = 3 ativos com ação por ativo independente.
+
+Ativos selecionados:
+  • ITUB4  — Ação (setor bancário, Itaú Unibanco)
+  • BOVA11 — ETF (replica o Ibovespa, exposição ao mercado)
+  • BBAS3  — Ação (setor bancário, Banco do Brasil)
+
+Justificativa: ativos de alta liquidez na B3, com dados históricos abundantes e
+comportamentos correlacionados porém distintos (dois bancos + índice amplo).
+
+
+════════════════════════════════════════════════════════════════════════════════
+2. DADOS DISPONÍVEIS
+════════════════════════════════════════════════════════════════════════════════
+
+2.1 portfolio_precos.csv (1.492 registros)
+──────────────────────────────────────────
+Período: 2019-01-02 até 2024-12-30
+Colunas: data, ITUB4, BOVA11, BBAS3, retorno_ITUB4, retorno_BOVA11, retorno_BBAS3
+Conteúdo: preços de fechamento ajustados e retornos diários log/simples.
+
+2.2 cdi_historico.csv (1.508 registros)
+───────────────────────────────────────
+Período: 2019-01-02 até 2024-12-31
+Colunas: data, CDI_pct_dia, CDI_decimal
+Conteúdo: taxa CDI diária — usada como taxa livre de risco (r_f).
+
+2.3 dataset_completo.csv (1.478 registros)
+──────────────────────────────────────────
+Merge dos dois acima. Colunas adicionais:
+  retorno_acima_cdi_ITUB4, retorno_acima_cdi_BOVA11, retorno_acima_cdi_BBAS3
+
+2.4 Splits Pré-definidos
+─────────────────────────
+  • treino.csv: 2019-01-03 → 2023-12-28 (1.227 dias úteis, ~80%)
+  • teste.csv:  2024-01-02 → 2024-12-30 (251 dias úteis, ~20%)
+
+2.5 Dados Auxiliares (dados/archive/)
+─────────────────────────────────────
+  • economic_indicators.csv: Taxa Selic, IPCA, IGP-M, INPC, Desemprego (2010-2025)
+  • bovespa_stocks.csv: histórico completo de todas as ações da B3 (~112 MB)
+  • bovespa_indexes.csv: apenas cabeçalho (sem dados úteis atualmente)
+
+
+════════════════════════════════════════════════════════════════════════════════
+3. MODELAGEM MDP (Markov Decision Process)
+════════════════════════════════════════════════════════════════════════════════
+
+3.1 Espaço de Estados S(t)
+──────────────────────────
+O estado no instante t é um vetor contendo:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Categoria              │ Features                          │ Dimensão  │
+├────────────────────────┼───────────────────────────────────┼───────────┤
+│ Retornos               │ retorno_ITUB4(t), retorno_BOVA11  │     3     │
+│                        │ (t), retorno_BBAS3(t)             │           │
+├────────────────────────┼───────────────────────────────────┼───────────┤
+│ Retornos em Janela     │ média e desvio-padrão dos retor-  │   3×2=6   │
+│ (rolling window 20d)   │ nos dos últimos 20 dias por ativo │           │
+├────────────────────────┼───────────────────────────────────┼───────────┤
+│ Excesso sobre CDI      │ retorno_acima_cdi por ativo       │     3     │
+├────────────────────────┼───────────────────────────────────┼───────────┤
+│ Taxa livre de risco    │ CDI_decimal(t)                    │     1     │
+├────────────────────────┼───────────────────────────────────┼───────────┤
+│ Posição atual          │ w_ITUB4(t), w_BOVA11(t),          │     3     │
+│ (pesos do portfólio)   │ w_BBAS3(t)                        │           │
+├────────────────────────┼───────────────────────────────────┼───────────┤
+│ Drawdown acumulado     │ dd(t) = (peak - valor_atual)/peak │     1     │
+├────────────────────────┼───────────────────────────────────┼───────────┤
+│ Volatilidade realizada │ σ_portfólio(t) (rolling 20d)      │     1     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Dimensão total do estado: 18
+
+Para Q-Learning tabular, discretizar cada feature em bins (ex: 5 bins).
+Para TD-Learning / Deep RL, usar vetor contínuo diretamente.
+
+3.2 Espaço de Ações A(t)
+─────────────────────────
+Cada ativo recebe uma ação independente a cada timestep:
+
+  Ação por ativo: { COMPRAR (+Δw), MANTER (0), VENDER (−Δw) }
+
+  Δw = incremento fixo de peso, ex: 10% do portfólio.
+
+  Combinação total: 3 ações × 3 ativos = 27 ações combinadas.
+
+  Restrição: Σ w_i = 1.0 (fully invested), w_i ≥ 0 (long-only)
+
+  Após cada ação, os pesos são normalizados para satisfazer as restrições.
+
+Codificação das 27 ações (exemplo):
+  Ação 0:  (COMPRAR_ITUB4, COMPRAR_BOVA11, COMPRAR_BBAS3)
+  Ação 1:  (COMPRAR_ITUB4, COMPRAR_BOVA11, MANTER_BBAS3)
+  ...
+  Ação 13: (MANTER_ITUB4,  MANTER_BOVA11,  MANTER_BBAS3)  ← "não fazer nada"
+  ...
+  Ação 26: (VENDER_ITUB4,  VENDER_BOVA11,  VENDER_BBAS3)
+
+3.3 Função de Transição T(s, a, s')
+────────────────────────────────────
+A transição é determinística dado o mercado:
+  1. O agente escolhe a ação a(t) no estado s(t)
+  2. Os pesos do portfólio são atualizados: w(t+1) = normalizar(w(t) + Δa(t))
+  3. O mercado avança um dia: preços(t+1) são observados
+  4. Os novos retornos, volatilidade e drawdown são calculados
+  5. O novo estado s(t+1) é construído
+
+3.4 Função de Recompensa R(t)
+─────────────────────────────
+A recompensa principal é baseada no Sharpe Ratio modificado:
+
+  ┌──────────────────────────────────────────────────────────────────┐
+  │                                                                  │
+  │   R(t) = (rₚ(t) − r_f(t)) / σₚ(t) − λ · custo_transação(t)    │
+  │                                                                  │
+  │   Onde:                                                          │
+  │     rₚ(t)  = Σᵢ wᵢ(t) · rᵢ(t)    (retorno do portfólio)       │
+  │     r_f(t) = CDI_decimal(t)        (taxa livre de risco diária) │
+  │     σₚ(t)  = desvio-padrão do retorno do portfólio (20d)       │
+  │     λ      = coeficiente de penalidade de transação (ex: 0.1)   │
+  │     custo_transação(t) = c · Σᵢ |wᵢ(t) − wᵢ(t−1)|             │
+  │     c      = custo por unidade de rebalanceamento (ex: 0.001)   │
+  │                                                                  │
+  └──────────────────────────────────────────────────────────────────┘
+
+  Nota: nos primeiros 20 dias, σₚ é estimado com janela menor ou fixado
+  em um valor padrão para evitar divisão por zero.
+
+3.5 Componentes Adicionais de Recompensa
+─────────────────────────────────────────
+
+RECOMPENSAS POSITIVAS (bônus):
+  + α₁ · max(0, rₚ(t) − r_BOVA11(t))
+      → Bônus por superar o benchmark IBOVESPA (via BOVA11)
+  + α₂ · (1 − HHI(t))
+      → Bônus por diversificação mantida
+        HHI = Σᵢ wᵢ² (Índice Herfindahl-Hirschman)
+        HHI = 1 → concentração total; HHI = 1/N → diversificação perfeita
+
+PENALIDADES (malus):
+  − β₁ · max(0, dd(t) − 0.10)
+      → Penalidade por drawdown acima de 10%
+  − β₂ · max(0, max(wᵢ) − 0.60)
+      → Penalidade por concentração excessiva (>60% num único ativo)
+  − λ · custo_transação(t)
+      → Penalidade por rebalanceamento frequente (já inclusa acima)
+
+Hiperparâmetros sugeridos:
+  α₁ = 0.5   (bônus benchmark)
+  α₂ = 0.2   (bônus diversificação)
+  β₁ = 2.0   (penalidade drawdown)
+  β₂ = 1.0   (penalidade concentração)
+  λ  = 0.1   (penalidade transação)
+  c  = 0.001 (custo de transação unitário, ~0.1% por operação)
+
+Recompensa completa:
+  R_total(t) = R_sharpe(t) + bônus_benchmark + bônus_diversificação
+               − penalidade_drawdown − penalidade_concentração
+
+3.6 Fator de Desconto γ
+────────────────────────
+γ = 0.99 (horizonte longo — típico para problemas financeiros)
+
+O agente valoriza retornos futuros quase tanto quanto os imediatos, refletindo
+a natureza de longo prazo do investimento em portfólio.
+
+
+════════════════════════════════════════════════════════════════════════════════
+4. ALGORITMOS DE RL PLANEJADOS
+════════════════════════════════════════════════════════════════════════════════
+
+4.1 Q-Learning (Tabular)
+─────────────────────────
+Arquivo: agentes/Q_learning.py
+
+Abordagem: discretização do espaço de estados em bins.
+  • Cada feature contínua é mapeada para um de K bins (sugerido: K=5)
+  • Tabela Q: Q[estado_discreto][ação] → valor estimado
+  • Atualização: Q(s,a) ← Q(s,a) + α·[r + γ·max_a' Q(s',a') − Q(s,a)]
+
+Parâmetros:
+  α (learning rate) = 0.1 → decai ao longo do treino
+  γ (discount)      = 0.99
+  ε (exploration)   = 1.0 → decai até 0.01 (ε-greedy)
+
+Vantagens: simples, interpretável, sem dependência de deep learning.
+Limitações: a discretização perde informação; escala mal para estados grandes.
+
+4.2 TD-Learning (Temporal Difference)
+──────────────────────────────────────
+Arquivo: agentes/TD_learning.py
+
+Abordagem: SARSA (on-policy TD control)
+  • Atualização: Q(s,a) ← Q(s,a) + α·[r + γ·Q(s',a') − Q(s,a)]
+  • a' é a ação realmente tomada em s' (on-policy)
+
+Diferença vs Q-Learning: SARSA é mais conservador pois aprende sobre a
+política que está executando, não sobre a política ótima. Isso pode ser
+vantajoso em finanças onde exploração excessiva é custosa.
+
+4.3 Extensão Futura — Deep Q-Network (DQN)
+───────────────────────────────────────────
+Arquivo futuro: agentes/DQN.py (a ser implementado)
+
+Para superar as limitações da discretização:
+  • Rede neural aproxima Q(s, a; θ)
+  • Experience Replay: armazena transições (s, a, r, s') em buffer
+  • Target Network: rede separada estabiliza o treino
+  • Entrada: vetor de estado contínuo (18 dimensões)
+  • Saída: Q-values para cada uma das 27 ações
+
+
+════════════════════════════════════════════════════════════════════════════════
+5. ARQUITETURA DO PROJETO
+════════════════════════════════════════════════════════════════════════════════
+
+rl-wallet-b3/
+├── main.py                    # Ponto de entrada — orquestração de treino/teste
+├── pyproject.toml             # Configuração do projeto (Poetry)
+├── requirements.txt           # Dependências
+├── documentacao.txt           # Este arquivo
+│
+├── ambiente/                  # Ambiente de RL (Gym-like)
+│   ├── __init__.py
+│   └── portfolio_env.py       # Classe PortfolioEnv (implementa step/reset/etc)
+│
+├── agentes/                   # Agentes de RL
+│   ├── Q_learning.py          # AgentQLearning
+│   └── TD_learning.py         # AgentTD (SARSA)
+│
+├── src/                       # Utilidades e processamento
+│   ├── data_loader.py         # Carregamento e pré-processamento dos CSVs
+│   ├── feature_engineering.py # Cálculo de features derivadas
+│   └── visualization.py       # Gráficos e métricas de avaliação
+│
+├── dados/                     # Datasets
+│   ├── portfolio_precos.csv   # Preços e retornos dos 3 ativos
+│   ├── cdi_historico.csv      # CDI diário (taxa livre de risco)
+│   ├── dataset_completo.csv   # Merge preços + CDI
+│   ├── treino.csv             # Split treino (2019-2023)
+│   ├── teste.csv              # Split teste (2024)
+│   └── archive/               # Dados brutos complementares
+│       ├── bovespa_stocks.csv
+│       ├── bovespa_indexes.csv
+│       └── economic_indicators.csv
+│
+├── notebooks/                 # Jupyter notebooks exploratórios
+│   └── RL.ipynb
+│
+└── resultados/                # Saída: métricas, gráficos, modelos salvos
+
+
+════════════════════════════════════════════════════════════════════════════════
+6. AMBIENTE DE RL — PortfolioEnv
+════════════════════════════════════════════════════════════════════════════════
+
+Classe: ambiente/portfolio_env.py
+Interface compatível com OpenAI Gym (sem dependência direta).
+
+class PortfolioEnv:
+    """
+    Ambiente de Reinforcement Learning para gestão de portfólio.
+
+    Métodos:
+        reset()         → estado_inicial
+        step(action)    → (próximo_estado, recompensa, done, info)
+        render()        → visualização do estado atual (opcional)
+    """
+
+    Parâmetros de inicialização:
+        df:               DataFrame com preços, retornos e CDI
+        initial_balance:  Capital inicial (default: 100_000 BRL)
+        transaction_cost: Custo por transação (default: 0.001 = 0.1%)
+        window_size:      Janela para médias móveis (default: 20 dias)
+
+    Estado inicial (reset):
+        Pesos iguais: w = [1/3, 1/3, 1/3]
+        Posição no DataFrame: dia window_size (para ter histórico)
+        Drawdown: 0
+        Peak do portfólio: initial_balance
+
+    Step (transição):
+        1. Decodifica ação (0-26) em deltas por ativo
+        2. Aplica deltas e normaliza pesos
+        3. Calcula custo de transação
+        4. Avança um dia no mercado
+        5. Calcula retorno do portfólio, volatilidade, drawdown
+        6. Calcula recompensa completa
+        7. Verifica condição de término (fim dos dados)
+        8. Retorna (novo_estado, recompensa, done, info)
+
+
+════════════════════════════════════════════════════════════════════════════════
+7. PIPELINE DE TREINAMENTO
+════════════════════════════════════════════════════════════════════════════════
+
+Fase 1 — Pré-processamento:
+  1. Carregar treino.csv
+  2. Calcular features derivadas (médias, desvios, drawdown)
+  3. Normalizar features (StandardScaler, fit apenas no treino)
+
+Fase 2 — Treinamento:
+  1. Instanciar PortfolioEnv com dados de treino
+  2. Instanciar agente (Q-Learning ou TD)
+  3. Loop de episódios (cada episódio = 1 passagem completa pelo treino):
+     a. env.reset()
+     b. Para cada timestep:
+        - Observar estado s(t)
+        - Selecionar ação a(t) com ε-greedy
+        - Executar step → (s', r, done, info)
+        - Atualizar Q-table
+        - Decair ε
+     c. Registrar métricas do episódio
+  4. Repetir por N episódios (sugerido: 500-1000)
+
+Fase 3 — Avaliação no Teste:
+  1. Carregar teste.csv
+  2. Instanciar PortfolioEnv com dados de teste
+  3. Executar agente treinado (ε = 0, sem exploração)
+  4. Registrar: retorno acumulado, Sharpe, drawdown máximo, pesos ao longo do tempo
+
+Fase 4 — Comparação com Benchmarks:
+  • Buy & Hold (1/3 em cada ativo)
+  • 100% CDI (taxa livre de risco)
+  • 100% BOVA11 (mercado)
+
+
+════════════════════════════════════════════════════════════════════════════════
+8. MÉTRICAS DE AVALIAÇÃO
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────┬────────────────────────────────────────────────┐
+│ Métrica                     │ Fórmula / Descrição                            │
+├─────────────────────────────┼────────────────────────────────────────────────┤
+│ Retorno Acumulado           │ (V_final − V_inicial) / V_inicial              │
+│ Retorno Anualizado          │ (1 + ret_acum)^(252/n_dias) − 1                │
+│ Sharpe Ratio Anualizado     │ √252 · (mean(rₚ − r_f)) / std(rₚ)             │
+│ Sortino Ratio               │ √252 · (mean(rₚ − r_f)) / std(rₚ⁻)           │
+│ Max Drawdown                │ max(peak − trough) / peak                      │
+│ Volatilidade Anualizada     │ std(rₚ) · √252                                │
+│ Calmar Ratio                │ ret_anualizado / max_drawdown                  │
+│ Win Rate                    │ % de dias com rₚ > 0                           │
+│ Turnover Médio              │ mean(Σᵢ |Δwᵢ|) por dia                        │
+│ Retorno vs CDI              │ ret_acum_portfolio − ret_acum_CDI              │
+│ Retorno vs BOVA11           │ ret_acum_portfolio − ret_acum_BOVA11           │
+└─────────────────────────────┴────────────────────────────────────────────────┘
+
+
+════════════════════════════════════════════════════════════════════════════════
+9. HIPERPARÂMETROS E CONFIGURAÇÃO
+════════════════════════════════════════════════════════════════════════════════
+
+Agente Q-Learning:
+  learning_rate (α):    0.1 → decay para 0.01
+  discount_factor (γ):  0.99
+  epsilon_start:        1.0
+  epsilon_end:          0.01
+  epsilon_decay:        0.995 (por episódio)
+  n_bins:               5 (discretização)
+  n_episodes:           500
+
+Agente TD (SARSA):
+  learning_rate (α):    0.1 → decay para 0.01
+  discount_factor (γ):  0.99
+  epsilon_start:        1.0
+  epsilon_end:          0.01
+  epsilon_decay:        0.995
+  n_episodes:           500
+
+Ambiente:
+  initial_balance:      100_000 BRL
+  transaction_cost (c): 0.001 (0.1%)
+  window_size:          20 dias
+  weight_delta (Δw):    0.10 (10%)
+
+Recompensa:
+  λ  (penalidade transação):    0.1
+  α₁ (bônus benchmark):        0.5
+  α₂ (bônus diversificação):   0.2
+  β₁ (penalidade drawdown):    2.0
+  β₂ (penalidade concentração): 1.0
+  drawdown_threshold:           0.10 (10%)
+  concentration_threshold:      0.60 (60%)
+
+
+════════════════════════════════════════════════════════════════════════════════
+10. PLANO DE IMPLEMENTAÇÃO (FASES)
+════════════════════════════════════════════════════════════════════════════════
+
+FASE 1 — Infraestrutura de Dados [PARCIALMENTE CONCLUÍDA]
+  [✓] Coleta e organização dos CSVs (preços, CDI)
+  [✓] Merge e cálculo de retornos acima do CDI
+  [✓] Split treino/teste
+  [ ] Implementar src/data_loader.py
+  [ ] Implementar src/feature_engineering.py (rolling stats, normalização)
+
+FASE 2 — Ambiente de RL
+  [ ] Implementar ambiente/portfolio_env.py (classe PortfolioEnv)
+  [ ] Testes unitários do ambiente (transições, recompensas)
+  [ ] Validar que reset/step funcionam corretamente
+
+FASE 3 — Agente Q-Learning
+  [ ] Implementar agentes/Q_learning.py completo
+  [ ] Discretização de estados
+  [ ] ε-greedy com decay
+  [ ] Treinar por 500 episódios no treino.csv
+  [ ] Avaliar no teste.csv
+
+FASE 4 — Agente TD (SARSA)
+  [ ] Implementar agentes/TD_learning.py completo
+  [ ] Treinar e avaliar
+  [ ] Comparar com Q-Learning
+
+FASE 5 — Visualização e Análise
+  [ ] Implementar src/visualization.py
+  [ ] Gráficos: evolução do portfólio, pesos ao longo do tempo
+  [ ] Gráficos: comparação com benchmarks (CDI, BOVA11, Buy&Hold)
+  [ ] Tabela de métricas finais
+  [ ] Salvar resultados em resultados/
+
+FASE 6 (Futura) — Deep RL
+  [ ] Implementar DQN com PyTorch
+  [ ] Comparar com métodos tabulares
+
+
+════════════════════════════════════════════════════════════════════════════════
+11. DEPENDÊNCIAS TÉCNICAS
+════════════════════════════════════════════════════════════════════════════════
+
+Core:
+  numpy       — operações numéricas
+  pandas      — manipulação de dados
+
+Visualização:
+  matplotlib  — gráficos
+  seaborn     — gráficos estatísticos
+
+Machine Learning:
+  scikit-learn — StandardScaler, métricas
+  torch        — Deep RL (DQN, futuro)
+  tensorflow   — alternativa para Deep RL
+
+Utilidades:
+  tqdm         — barras de progresso no treino
+  jupyter      — notebooks exploratórios
+
+
+════════════════════════════════════════════════════════════════════════════════
+12. GLOSSÁRIO
+════════════════════════════════════════════════════════════════════════════════
+
+  MDP     — Markov Decision Process
+  RL      — Reinforcement Learning (Aprendizado por Reforço)
+  CDI     — Certificado de Depósito Interbancário (taxa livre de risco BR)
+  B3      — Brasil, Bolsa, Balcão (bolsa de valores brasileira)
+  ETF     — Exchange-Traded Fund
+  HHI     — Índice Herfindahl-Hirschman (medida de concentração)
+  Sharpe  — Sharpe Ratio (retorno ajustado ao risco)
+  Drawdown— Queda percentual do pico ao vale do portfólio
+  SARSA   — State-Action-Reward-State-Action (TD control on-policy)
+  DQN     — Deep Q-Network
+  ε-greedy— Política de exploração: ação aleatória com prob ε, greedy com 1−ε
+
+════════════════════════════════════════════════════════════════════════════════
+                              FIM DA DOCUMENTAÇÃO
+════════════════════════════════════════════════════════════════════════════════
