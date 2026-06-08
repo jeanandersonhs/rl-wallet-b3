@@ -1,11 +1,11 @@
 """
-test_td_agent.py — Smoke tests para o agente SARSA (AgentTD).
+test_td_agent.py — Smoke tests para o agente TD_LEARNING (AgentTD).
 
 Valida:
     - Criação do agente com bins e Q-table
     - Discretização de estados
     - Política ε-greedy
-    - Atualização SARSA (on-policy: usa Q(s',a'), não max)
+    - Atualização TD_LEARNING (on-policy: usa Q(s',a'), não max)
     - Treinamento de 1 episódio
     - Avaliação completa
     - Persistência (save/load)
@@ -161,11 +161,11 @@ class TestEpsilonGreedy:
         assert all(a == 26 for a in actions)
 
 
-class TestSarsaUpdate:
-    """Testes da atualização SARSA (diferença fundamental vs Q-Learning)."""
+class TestTD_LEARNINGUpdate:
+    """Testes da atualização TD_LEARNING (diferença fundamental vs Q-Learning)."""
 
     def test_update_changes_q_value(self, agent, env):
-        """Q-value muda após atualização SARSA."""
+        """Q-value muda após atualização TD_LEARNING."""
         state = env.reset()
         s = agent.discretize(state)
         next_state, _, _, _ = env.step(0)
@@ -177,8 +177,8 @@ class TestSarsaUpdate:
 
         assert q_after != q_before
 
-    def test_sarsa_uses_next_action_not_max(self, agent, env):
-        """SARSA usa Q(s', a') e NÃO max Q(s', a')."""
+    def test_TD_LEARNING_uses_next_action_not_max(self, agent, env):
+        """TD_LEARNING usa Q(s', a') e NÃO max Q(s', a')."""
         state = env.reset()
         s = agent.discretize(state)
         next_state, _, _, _ = env.step(0)
