@@ -21,14 +21,10 @@ class PortfolioEnv:
     Ambiente de Reinforcement Learning para gestão de portfólio.
 
     Métodos públicos:
-        reset()       → np.ndarray (estado inicial, shape 18)
+        reset()       → np.ndarray (estado inicial)
         step(action)  → (obs, reward, done, info)
         render()      → imprime estado atual no console
     """
-
-    # ─────────────────────────────────────────────────────────────────────
-    # 1. INICIALIZAÇÃO
-    # ─────────────────────────────────────────────────────────────────────
 
     def __init__(
         self,
@@ -132,10 +128,6 @@ class PortfolioEnv:
         self.peak_value = 0.0
         self.portfolio_returns_history = []
 
-    # ─────────────────────────────────────────────────────────────────────
-    # 2. RESET
-    # ─────────────────────────────────────────────────────────────────────
-
     def reset(self) -> np.ndarray:
         """
         Reinicia o ambiente para o estado inicial.
@@ -154,10 +146,6 @@ class PortfolioEnv:
 
         return self._get_observation()
 
-    # ─────────────────────────────────────────────────────────────────────
-    # 3. DECODE ACTION
-    # ─────────────────────────────────────────────────────────────────────
-
     def _decode_action(self, action_id: int) -> np.ndarray:
         """
         Converte um inteiro [0, 26] em vetor de deltas de peso.
@@ -174,10 +162,7 @@ class PortfolioEnv:
         """
         return self._action_deltas[action_id] * self.weight_delta
 
-    # ─────────────────────────────────────────────────────────────────────
-    # 4. APPLY WEIGHTS
-    # ─────────────────────────────────────────────────────────────────────
-
+   
     def _apply_weights(self, deltas: np.ndarray):
         """
         Aplica deltas aos pesos atuais, garante restrições, calcula custo.
@@ -211,18 +196,15 @@ class PortfolioEnv:
 
         return new_weights, cost
 
-    # ─────────────────────────────────────────────────────────────────────
-    # 5. GET OBSERVATION
-    # ─────────────────────────────────────────────────────────────────────
-
+  
     def _get_observation(self) -> np.ndarray:
         """
         Monta o vetor de estado S(t) com 18 dimensões.
 
         Composição:
             [0:3]   Retornos diários dos 3 ativos
-            [3:6]   Média rolling (window_size) dos retornos por ativo
-            [6:9]   Desvio-padrão rolling dos retornos por ativo
+            [3:6]   Média (window_size) dos retornos por ativo
+            [6:9]   Desvio-padrão dos retornos por ativo
             [9:12]  Retorno acima do CDI por ativo
             [12]    CDI do dia
             [13:16] Pesos atuais do portfólio

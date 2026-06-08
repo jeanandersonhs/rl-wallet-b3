@@ -1,16 +1,12 @@
 """
 main_td.py — Ponto de entrada: orquestração de treino e avaliação do SARSA (TD).
-
-Pipeline:
     1. Carregar dados de treino e teste
     2. Criar ambiente PortfolioEnv com dados de treino
-    3. Instanciar AgentTD (SARSA) e calcular bins de discretização
+    3. Instanciar AgentTD TD-Learning e calcular bins de discretização
     4. Treinar por N episódios
     5. Avaliar no conjunto de teste
     6. Comparar com benchmarks (Buy&Hold, CDI, BOVA11)
     7. Salvar agente treinado e resultados
-
-Referência: documentacao.txt, seções 4.2, 7 e 9.
 """
 
 import os
@@ -26,7 +22,7 @@ from agentes.TD_learning import AgentTD
 # CONFIGURAÇÃO
 # ═════════════════════════════════════════════════════════════════════════
 
-# Hiperparâmetros do agente SARSA (documentacao.txt seção 9)
+# Hiperparâmetros do agente TD
 AGENT_CONFIG = {
     "n_bins": 5,
     "alpha": 0.1,
@@ -40,7 +36,7 @@ AGENT_CONFIG = {
     "seed": 42,
 }
 
-# Hiperparâmetros do ambiente (documentacao.txt seção 9)
+# Hiperparâmetros do ambiente
 ENV_CONFIG = {
     "initial_balance": 100_000.0,
     "transaction_cost": 0.001,
@@ -139,17 +135,17 @@ def compute_benchmarks(test_df: "pd.DataFrame", initial_balance: float) -> dict:
     return benchmarks
 
 
-# ═════════════════════════════════════════════════════════════════════════
+# ___________________________________________________________________________________
 # MAIN
-# ═════════════════════════════════════════════════════════════════════════
+#___________________________________________________________________________________
 
 def main():
     """Pipeline principal de treino e avaliação SARSA."""
 
-    print("╔══════════════════════════════════════════════════════════╗")
-    print("║         RL-WALLET-B3 — SARSA (TD-Learning)             ║")
-    print("║         Gestão de Portfólio com Aprendizado por Reforço ║")
-    print("╚══════════════════════════════════════════════════════════╝\n")
+    
+    print("        RL-WALLET-B3 (TD-Learning)                       ")
+    print("        Gestão de Portfólio com Aprendizado por Reforço ")
+    print("=================================================================================")
 
     # --- Fase 1: Carregar dados ---
     print("▶ FASE 1: Carregando dados...\n")
@@ -210,7 +206,7 @@ def main():
     # Salvar métricas em JSON (para análise no notebook)
     metrics = {
         "agent": {
-            "algorithm": "SARSA (on-policy TD control)",
+            "algorithm": "TD-Learning (on-policy TD control)",
             "final_value": eval_results["final_value"],
             "total_return": eval_results["total_return"],
             "sharpe_ratio": eval_results["sharpe_ratio"],

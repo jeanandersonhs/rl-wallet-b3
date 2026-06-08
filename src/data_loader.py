@@ -5,8 +5,6 @@ Responsável por:
   - Carregar treino.csv e teste.csv
   - Converter coluna 'data' para datetime
   - Validar que todas as colunas necessárias para o PortfolioEnv existem
-
-Referência: documentacao.txt, seções 2 e 5.
 """
 
 import os
@@ -23,7 +21,6 @@ REQUIRED_COLUMNS = [
     "retorno_acima_cdi_BBAS3",
 ]
 
-# Caminho base dos dados (relativo à raiz do projeto)
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dados")
 
 
@@ -48,10 +45,10 @@ def _load_csv(filename: str) -> pd.DataFrame:
     """
     Carrega um CSV do diretório de dados e prepara o DataFrame.
 
-    Parameters
+    Args
     ----------
     filename : str
-        Nome do arquivo CSV (ex: 'treino.csv').
+        Nome do arquivo CSV
 
     Returns
     -------

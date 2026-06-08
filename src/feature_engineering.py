@@ -1,5 +1,5 @@
 """
-feature_engineering.py — Discretização de estados para Q-Learning tabular.
+feature_engineering.py — Discretização de estados para Q-Learning.
 
 Responsável por:
   - Calcular limites dos bins a partir de simulação com ações aleatórias
@@ -8,7 +8,6 @@ Responsável por:
 O PortfolioEnv retorna estados contínuos (18 dimensões). Para o Q-Learning
 tabular, cada feature é mapeada para um de K bins usando np.digitize.
 
-Referência: documentacao.txt, seções 3.1 e 4.1.
 """
 
 import numpy as np
@@ -24,10 +23,9 @@ def compute_bins_from_simulation(
     Calcula os limites dos bins executando episódios com ações aleatórias.
 
     Simula o ambiente com política aleatória para capturar a distribuição
-    real dos estados (incluindo features dinâmicas como drawdown, pesos e
-    volatilidade do portfólio).
+    real dos estados
 
-    Parameters
+    Args:
     ----------
     env : PortfolioEnv
         Ambiente de RL inicializado com dados de treino.
@@ -74,9 +72,9 @@ def compute_bins_from_simulation(
 
 def discretize_state(state: np.ndarray, bins: list[np.ndarray]) -> tuple:
     """
-    Converte um vetor de estado contínuo em tupla discreta.
+    Converte um vetor de estado contínuo em tupla
 
-    Parameters
+    Args:
     ----------
     state : np.ndarray
         Vetor de estado contínuo, shape (18,).
