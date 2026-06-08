@@ -1,5 +1,5 @@
 """
-main_td.py — Ponto de entrada: orquestração de treino e avaliação do SARSA (TD).
+main_td.py — Ponto de entrada: orquestração de treino e avaliação do TD_LEARNING (TD).
     1. Carregar dados de treino e teste
     2. Criar ambiente PortfolioEnv com dados de treino
     3. Instanciar AgentTD TD-Learning e calcular bins de discretização
@@ -13,7 +13,7 @@ import os
 import json
 import numpy as np
 
-from src.data_loader import load_train_data, load_test_data
+from helpers.data_loader import load_train_data, load_test_data
 from ambiente.portfolio_env import PortfolioEnv
 from agentes.TD_learning import AgentTD
 
@@ -140,7 +140,7 @@ def compute_benchmarks(test_df: "pd.DataFrame", initial_balance: float) -> dict:
 #___________________________________________________________________________________
 
 def main():
-    """Pipeline principal de treino e avaliação SARSA."""
+    """Pipeline principal de treino e avaliação TD_LEARNING."""
 
     
     print("        RL-WALLET-B3 (TD-Learning)                       ")
@@ -159,12 +159,12 @@ def main():
           f"{train_env.n_actions} ações, "
           f"{train_env.observation_space_size} features de estado")
 
-    # --- Fase 3: Criar agente SARSA ---
-    print("\n▶ FASE 3: Criando agente SARSA (TD)...\n")
+    # --- Fase 3: Criar agente TD_LEARNING ---
+    print("\n▶ FASE 3: Criando agente TD_LEARNING (TD)...\n")
     agent = AgentTD(train_env, **AGENT_CONFIG)
 
     # --- Fase 4: Treinar ---
-    print("\n▶ FASE 4: Treinamento SARSA...\n")
+    print("\n▶ FASE 4: Treinamento TD_LEARNING...\n")
     history = agent.train(
         train_env,
         n_episodes=N_EPISODES,
@@ -182,7 +182,7 @@ def main():
 
     print(f"  {'Estratégia':<20} {'Valor Final':>15} {'Retorno':>10}")
     print(f"  {'─'*45}")
-    print(f"  {'SARSA (TD)':<20} "
+    print(f"  {'TD_LEARNING (TD)':<20} "
           f"R$ {eval_results['final_value']:>12,.2f} "
           f"{eval_results['total_return']*100:>8.2f}%")
     print(f"  {'Buy & Hold (1/3)':<20} "

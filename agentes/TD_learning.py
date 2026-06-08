@@ -1,18 +1,18 @@
 """
-AgentTD — Agente SARSA (on-policy TD control) para Gestão de Portfólio (B3)
+AgentTD — Agente TD_LEARNING (on-policy TD control) para Gestão de Portfólio (B3)
 
 Algoritmo on-policy de Temporal Difference (TD) control.
 
-Equação de atualização (SARSA):
+Equação de atualização (TD_LEARNING):
     Q(s, a) ← Q(s, a) + α · [ r + γ · Q(s', a') − Q(s, a) ]
                                        ↑
                           a' = ação REALMENTE tomada em s' (on-policy)
 
 Diferença vs Q-Learning:
     Q-Learning (off-policy):  usa max_a' Q(s', a')  →  aprende política ótima
-    SARSA      (on-policy):   usa Q(s', a')          →  aprende sobre a política atual
+    TD_LEARNING      (on-policy):   usa Q(s', a')          →  aprende sobre a política atual
 
-O SARSA é mais conservador: como inclui a exploração (ε-greedy) no aprendizado,
+O TD_LEARNING é mais conservador: como inclui a exploração (ε-greedy) no aprendizado,
 ele penaliza ações arriscadas que a política exploratória pode tomar. Isso é
 vantajoso em finanças onde exploração excessiva é custosa.
 
@@ -27,12 +27,12 @@ from collections import defaultdict
 
 import numpy as np
 
-from src.feature_engineering import compute_bins_from_simulation, discretize_state
+from helpers.feature_engineering import compute_bins_from_simulation, discretize_state
 
 
 class AgentTD:
     """
-    Agente SARSA (on-policy TD control) para gestão de portfólio.
+    Agente TD_LEARNING (on-policy TD control) para gestão de portfólio.
 
     Parameters
     ----------
@@ -91,12 +91,12 @@ class AgentTD:
         # Calcula bins executando episódios aleatórios no ambiente de treino
         # para capturar a distribuição real dos estados (incluindo features
         # dinâmicas como drawdown, volatilidade e pesos do portfólio)
-        print(f"[SARSA] Calculando bins de discretização "
+        print(f"[TD_LEARNING] Calculando bins de discretização "
               f"({n_sim_episodes} episódios aleatórios)...")
         self.bins = compute_bins_from_simulation(
             env, n_bins=n_bins, n_episodes=n_sim_episodes, seed=seed
         )
-        print(f"[SARSA] Bins calculados para {len(self.bins)} features.")
+        print(f"[TD_LEARNING] Bins calculados para {len(self.bins)} features.")
 
         # --- Q-Table ---
         # Dicionário esparso: apenas estados visitados são armazenados.
@@ -160,7 +160,7 @@ class AgentTD:
             return self.rng.choice(best_actions)
 
     # ─────────────────────────────────────────────────────────────────────
-    # ATUALIZAÇÃO Q — SARSA (ON-POLICY)
+    # ATUALIZAÇÃO Q — TD_LEARNING (ON-POLICY)
     # ─────────────────────────────────────────────────────────────────────
 
     def update(
@@ -173,16 +173,16 @@ class AgentTD:
         done: bool,
     ) -> float:
         """
-        Atualiza Q(s, a) usando a equação SARSA (on-policy TD control).
+        Atualiza Q(s, a) usando a equação TD_LEARNING (on-policy TD control).
 
         Q(s, a) ← Q(s, a) + α · [ r + γ · Q(s', a') − Q(s, a) ]
 
         Diferença crucial vs Q-Learning:
             Q-Learning: td_target = r + γ · max_a' Q(s', a')   (off-policy)
-            SARSA:      td_target = r + γ · Q(s', a')          (on-policy)
+            TD_LEARNING:      td_target = r + γ · Q(s', a')          (on-policy)
 
-        O a' no SARSA é a ação realmente escolhida pela política ε-greedy
-        para o próximo estado, não a ação ótima teórica. Isso torna o SARSA
+        O a' no TD_LEARNING é a ação realmente escolhida pela política ε-greedy
+        para o próximo estado, não a ação ótima teórica. Isso torna o TD_LEARNING
         mais conservador: ele "sabe" que às vezes vai explorar (e pode
         tomar ações ruins), e ajusta suas estimativas de acordo.
 
@@ -212,7 +212,7 @@ class AgentTD:
         # Estimativa atual
         current_q = self.q_table[state][action]
 
-        # TD target SARSA: r + γ · Q(s', a')
+        # TD target TD_LEARNING: r + γ · Q(s', a')
         if done:
             # Estado terminal: sem recompensa futura
             td_target = reward
@@ -227,7 +227,7 @@ class AgentTD:
         # Se δ < 0: experiência PIOR que esperado → Q desce
         td_error = td_target - current_q
 
-        # Atualização incremental (SARSA update)
+        # Atualização incremental (TD_LEARNING update)
         self.q_table[state][action] += self.alpha * td_error
 
         return td_error
@@ -252,7 +252,7 @@ class AgentTD:
         self.alpha = max(self.alpha_min, self.alpha * self.alpha_decay)
 
     # ─────────────────────────────────────────────────────────────────────
-    # TREINAMENTO — LOOP SARSA
+    # TREINAMENTO — LOOP TD_LEARNING
     # ─────────────────────────────────────────────────────────────────────
 
     def train(
@@ -262,11 +262,11 @@ class AgentTD:
         log_interval: int = 50,
     ) -> dict:
         """
-        Treina o agente por N episódios usando SARSA (on-policy).
+        Treina o agente por N episódios usando TD_LEARNING (on-policy).
 
         Cada episódio = 1 passagem completa pelos dados de treino.
 
-        Loop SARSA (diferença vs Q-Learning):
+        Loop TD_LEARNING (diferença vs Q-Learning):
             1. Observa estado s(t) e discretiza
             2. Seleciona ação a(t) com ε-greedy      ← ANTES do loop
             3. Executa step → (s', r, done, info)
@@ -304,7 +304,7 @@ class AgentTD:
         }
 
         print(f"\n{'='*60}")
-        print(f"  SARSA (TD) TREINAMENTO — {n_episodes} episódios")
+        print(f"  TD_LEARNING (TD) TREINAMENTO — {n_episodes} episódios")
         print(f"  α={self.alpha}, γ={self.gamma}, ε={self.epsilon}, "
               f"bins={self.n_bins}")
         print(f"{'='*60}\n")
@@ -314,7 +314,7 @@ class AgentTD:
             state_continuous = env.reset()
             state = self.discretize(state_continuous)
 
-            # SARSA: escolhe a PRIMEIRA ação antes de entrar no loop
+            # TD_LEARNING: escolhe a PRIMEIRA ação antes de entrar no loop
             action = self.choose_action(state)
 
             total_reward = 0.0
@@ -331,10 +331,10 @@ class AgentTD:
 
                 # 3. Escolhe a' no próximo estado (on-policy)
                 #    Essa ação será usada TANTO no update QUANTO como
-                #    ação do próximo timestep — essência do SARSA
+                #    ação do próximo timestep — essência do TD_LEARNING
                 next_action = self.choose_action(next_state)
 
-                # 4. Atualiza Q-table (SARSA: usa Q(s', a'), não max)
+                # 4. Atualiza Q-table (TD_LEARNING: usa Q(s', a'), não max)
                 td_error = self.update(
                     state, action, reward, next_state, next_action, done
                 )
@@ -375,7 +375,7 @@ class AgentTD:
         history["n_states_visited"] = len(self.q_table)
 
         print(f"\n{'='*60}")
-        print(f"  TREINAMENTO SARSA CONCLUÍDO")
+        print(f"  TREINAMENTO TD_LEARNING CONCLUÍDO")
         print(f"  Estados visitados: {len(self.q_table):,}")
         print(f"  ε final: {self.epsilon:.4f}")
         print(f"  α final: {self.alpha:.4f}")
@@ -464,7 +464,7 @@ class AgentTD:
         results["sharpe_ratio"] = sharpe
 
         print(f"\n{'─'*50}")
-        print(f"  AVALIAÇÃO NO TESTE (SARSA)")
+        print(f"  AVALIAÇÃO NO TESTE (TD_LEARNING)")
         print(f"  Valor final:       R$ {results['final_value']:,.2f}")
         print(f"  Retorno acumulado: {results['total_return']*100:.2f}%")
         print(f"  Sharpe Ratio:      {sharpe:.4f}")
@@ -501,7 +501,7 @@ class AgentTD:
         }
         with open(filepath, "wb") as f:
             pickle.dump(data, f)
-        print(f"[SARSA] Agente salvo em: {filepath}")
+        print(f"[TD_LEARNING] Agente salvo em: {filepath}")
 
     def load(self, filepath: str) -> None:
         """
@@ -529,6 +529,6 @@ class AgentTD:
         self.epsilon_min = data["epsilon_min"]
         self.epsilon_decay = data["epsilon_decay"]
 
-        print(f"[SARSA] Agente carregado de: {filepath}")
+        print(f"[TD_LEARNING] Agente carregado de: {filepath}")
         print(f"  Q-states: {len(self.q_table):,} | "
               f"ε: {self.epsilon:.4f} | α: {self.alpha:.4f}")

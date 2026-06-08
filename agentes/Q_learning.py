@@ -25,7 +25,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from src.feature_engineering import compute_bins_from_simulation, discretize_state
+from helpers.feature_engineering import compute_bins_from_simulation, discretize_state
 
 
 class AgentQLearning:

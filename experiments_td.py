@@ -3,7 +3,7 @@ import json
 import itertools
 import numpy as np
 
-from src.data_loader import load_train_data, load_test_data
+from helpers.data_loader import load_train_data, load_test_data
 from ambiente.portfolio_env import PortfolioEnv
 from agentes.TD_learning import AgentTD
 

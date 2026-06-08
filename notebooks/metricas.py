@@ -1,5 +1,5 @@
 """
-metricas.py — Comparação Q-Learning vs SARSA com gráficos.
+metricas.py — Comparação Q-Learning vs TD_LEARNING com gráficos.
 
 Métricas:
   1. Recompensa Acumulada por Episódio (Reward Curve)
@@ -32,7 +32,7 @@ plt.rcParams.update({
     "axes.labelsize": 12,
 })
 
-COLORS = {"qlearning": "#2196F3", "sarsa": "#FF5722"}
+COLORS = {"qlearning": "#2196F3", "TD_LEARNING": "#FF5722"}
 
 
 def load_history(filename):
@@ -67,7 +67,7 @@ def plot_reward_curve():
     # --- Painel 1: Curvas brutas + suavizadas ---
     ax = axes[0]
     ax.plot(episodes, q_rewards, alpha=0.15, color=COLORS["qlearning"])
-    ax.plot(episodes, td_rewards, alpha=0.15, color=COLORS["sarsa"])
+    ax.plot(episodes, td_rewards, alpha=0.15, color=COLORS["TD_LEARNING"])
 
     w = 20
     q_smooth = smooth(q_rewards, w)
@@ -76,8 +76,8 @@ def plot_reward_curve():
 
     ax.plot(ep_smooth, q_smooth, color=COLORS["qlearning"],
             linewidth=2, label=f"Q-Learning (média {w} ep)")
-    ax.plot(ep_smooth, td_smooth, color=COLORS["sarsa"],
-            linewidth=2, label=f"SARSA (média {w} ep)")
+    ax.plot(ep_smooth, td_smooth, color=COLORS["TD_LEARNING"],
+            linewidth=2, label=f"TD_LEARNING (média {w} ep)")
 
     ax.set_xlabel("Episódio")
     ax.set_ylabel("Recompensa Total do Episódio")
@@ -90,15 +90,15 @@ def plot_reward_curve():
     td_values = td_hist["episode_portfolio_values"]
 
     ax2.plot(episodes, q_values, alpha=0.15, color=COLORS["qlearning"])
-    ax2.plot(episodes, td_values, alpha=0.15, color=COLORS["sarsa"])
+    ax2.plot(episodes, td_values, alpha=0.15, color=COLORS["TD_LEARNING"])
 
     q_val_smooth = smooth(q_values, w)
     td_val_smooth = smooth(td_values, w)
 
     ax2.plot(ep_smooth, q_val_smooth, color=COLORS["qlearning"],
              linewidth=2, label=f"Q-Learning")
-    ax2.plot(ep_smooth, td_val_smooth, color=COLORS["sarsa"],
-             linewidth=2, label=f"SARSA")
+    ax2.plot(ep_smooth, td_val_smooth, color=COLORS["TD_LEARNING"],
+             linewidth=2, label=f"TD_LEARNING")
 
     ax2.axhline(y=100_000, color="gray", linestyle="--",
                 alpha=0.5, label="Capital Inicial (R$100k)")
@@ -140,11 +140,11 @@ def plot_convergence():
     ep_smooth = range(w, len(q_td_errors) + 1)
 
     ax.plot(episodes, q_td_errors, alpha=0.12, color=COLORS["qlearning"])
-    ax.plot(episodes, td_td_errors, alpha=0.12, color=COLORS["sarsa"])
+    ax.plot(episodes, td_td_errors, alpha=0.12, color=COLORS["TD_LEARNING"])
     ax.plot(ep_smooth, q_smooth, color=COLORS["qlearning"],
             linewidth=2, label="Q-Learning")
-    ax.plot(ep_smooth, td_smooth_vals, color=COLORS["sarsa"],
-            linewidth=2, label="SARSA")
+    ax.plot(ep_smooth, td_smooth_vals, color=COLORS["TD_LEARNING"],
+            linewidth=2, label="TD_LEARNING")
 
     ax.set_xlabel("Episódio")
     ax.set_ylabel("TD Error Médio (|δ|)")
@@ -218,8 +218,8 @@ def plot_sample_efficiency():
 
     ax.plot(ep_smooth, q_ret_smooth, color=COLORS["qlearning"],
             linewidth=2, label="Q-Learning")
-    ax.plot(ep_smooth, td_ret_smooth, color=COLORS["sarsa"],
-            linewidth=2, label="SARSA")
+    ax.plot(ep_smooth, td_ret_smooth, color=COLORS["TD_LEARNING"],
+            linewidth=2, label="TD_LEARNING")
     ax.axhline(y=0, color="gray", linestyle="--", alpha=0.5,
                label="Break-even (0%)")
 
@@ -232,11 +232,11 @@ def plot_sample_efficiency():
                     xytext=(q_profit_ep + 20, -3))
 
     if td_profit_ep:
-        ax.axvline(x=td_profit_ep, color=COLORS["sarsa"],
+        ax.axvline(x=td_profit_ep, color=COLORS["TD_LEARNING"],
                    linestyle=":", alpha=0.7)
-        ax.annotate(f"SARSA: ep {td_profit_ep}",
+        ax.annotate(f"TD_LEARNING: ep {td_profit_ep}",
                     xy=(td_profit_ep, 0), fontsize=9,
-                    color=COLORS["sarsa"],
+                    color=COLORS["TD_LEARNING"],
                     xytext=(td_profit_ep + 20, 3))
 
     ax.set_xlabel("Episódio")
@@ -254,7 +254,7 @@ def plot_sample_efficiency():
                                              "metrics_td.json")))
 
     table_data = [
-        ["Métrica", "Q-Learning", "SARSA"],
+        ["Métrica", "Q-Learning", "TD_LEARNING"],
         ["Valor Final (R$)",
          f"{q_metrics['agent']['final_value']:,.2f}",
          f"{td_metrics['agent']['final_value']:,.2f}"],
@@ -309,7 +309,7 @@ def plot_hyperparameter_sensitivity():
     Treina ambos os agentes com diferentes learning rates e compara
     o impacto no retorno final.
     """
-    from src.data_loader import load_train_data
+    from helpers.data_loader import load_train_data
     from ambiente.portfolio_env import PortfolioEnv
     from agentes.Q_learning import AgentQLearning
     from agentes.TD_learning import AgentTD
@@ -352,7 +352,7 @@ def plot_hyperparameter_sensitivity():
         q_hist = q_agent.train(env, n_episodes=n_episodes, log_interval=999)
         q_results[alpha] = q_hist["episode_portfolio_values"]
 
-        # SARSA
+        # TD_LEARNING
         env2 = PortfolioEnv(train_df, **env_config)
         td_agent = AgentTD(
             env2, n_bins=5, alpha=alpha, alpha_min=0.005,
@@ -383,7 +383,7 @@ def plot_hyperparameter_sensitivity():
         axes[1].plot(ep_sm, td_sm, color=color, linewidth=2,
                      label=f"α={alpha}")
 
-    for ax, title in zip(axes, ["Q-Learning", "SARSA"]):
+    for ax, title in zip(axes, ["Q-Learning", "TD_LEARNING"]):
         ax.axhline(y=100_000, color="gray", linestyle="--", alpha=0.4)
         ax.set_xlabel("Episódio")
         ax.set_ylabel("Valor do Portfólio (R$)")
@@ -403,7 +403,7 @@ def plot_hyperparameter_sensitivity():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  MÉTRICAS DE COMPARAÇÃO — Q-Learning vs SARSA")
+    print("  MÉTRICAS DE COMPARAÇÃO — Q-Learning vs TD_LEARNING")
     print("=" * 60)
 
     print("\n1. Recompensa Acumulada por Episódio...")
