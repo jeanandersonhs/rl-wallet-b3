@@ -25,7 +25,6 @@ class PortfolioEnv:
         window_size: int = 20,
         weight_delta: float = 0.10,
         lambda_transaction: float = 0.1,
-        alpha_benchmark: float = 0.5,
         alpha_diversification: float = 0.2,
         beta_drawdown: float = 2.0,
         beta_concentration: float = 1.0,
@@ -50,8 +49,6 @@ class PortfolioEnv:
              aplicado por ação de compra/venda.
         lambda_transaction : float
              — coeficiente de penalidade de transação na recompensa.
-        alpha_benchmark : float
-             — bônus por superar BOVA11.
         alpha_diversification : float
             α₂ — bônus por diversificação (via HHI).
         beta_drawdown : float
@@ -71,7 +68,6 @@ class PortfolioEnv:
 
         # Hiperparâmetros de recompensa
         self.lambda_transaction = lambda_transaction
-        self.alpha_benchmark = alpha_benchmark
         self.alpha_diversification = alpha_diversification
         self.beta_drawdown = beta_drawdown
         self.beta_concentration = beta_concentration
@@ -95,8 +91,6 @@ class PortfolioEnv:
              "retorno_acima_cdi_BBAS3"]
         ].values.astype(np.float64)
 
-        # Retorno do BOVA11 isolado (benchmark)
-        self.bova11_returns = df["retorno_BOVA11"].values.astype(np.float64)
 
         self.n_steps = len(df)
 
@@ -258,13 +252,11 @@ class PortfolioEnv:
         self,
         portfolio_return: float,
         cost: float,
-        bova11_return: float
     ) -> float:
         """
         Calcula a recompensa completa do timestep.
 
         R(t) = sharpe_instantâneo
-             + alpha_1 · max(0, rₚ − r_BOVA11)       (bônus benchmark)
              + alpha_2 · (1 − HHI)                    (bônus diversificação)
              − beta_1 · max(0, dd − threshold_dd)     (penalidade drawdown)
              − beta_2 · max(0, max(w) − threshold_c)  (penalidade concentração)
@@ -276,8 +268,6 @@ class PortfolioEnv:
             Retorno do portfólio no timestep.
         cost : float
             Custo de transação incorrido.
-        bova11_return : float
-            Retorno do BOVA11 no mesmo timestep (benchmark).
 
         Returns
         -------
@@ -296,11 +286,6 @@ class PortfolioEnv:
             sigma = 1e-8
 
         sharpe = (portfolio_return - cdi_daily) / sigma
-
-        # --- Bônus: superar benchmark BOVA11 ---
-        bonus_benchmark = self.alpha_benchmark * max(
-            0.0, portfolio_return - bova11_return
-        )
 
         # --- Bônus: diversificação (HHI) ---
         # HHI = soma wi²; quanto menor, mais diversificado
@@ -328,7 +313,6 @@ class PortfolioEnv:
         # --- Recompensa total ---
         reward = (
             sharpe
-            + bonus_benchmark
             + bonus_diversification
             - penalty_drawdown
             - penalty_concentration
@@ -375,8 +359,7 @@ class PortfolioEnv:
         self.portfolio_returns_history.append(portfolio_return)
 
         # 8. Calcula recompensa
-        bova11_return = self.bova11_returns[self.current_step]
-        reward = self._calculate_reward(portfolio_return, cost, bova11_return)
+        reward = self._calculate_reward(portfolio_return, cost)
 
         # 9. Verifica condição de término
         done = self.current_step >= self.n_steps - 1

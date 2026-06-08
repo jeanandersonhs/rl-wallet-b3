@@ -7,7 +7,7 @@ Pipeline:
     3. Instanciar AgentQLearning e calcular bins de discretização
     4. Treinar por N episódios
     5. Avaliar no conjunto de teste
-    6. Comparar com benchmarks (Buy&Hold, CDI, BOVA11)
+    6. Comparar com benchmarks (Buy&Hold, CDI)
     7. Salvar agente treinado e resultados
 
 Referência: documentacao.txt, seção 7.
@@ -47,7 +47,6 @@ ENV_CONFIG = {
     "window_size": 20,
     "weight_delta": 0.10,
     "lambda_transaction": 0.1,
-    "alpha_benchmark": 0.5,
     "alpha_diversification": 0.2,
     "beta_drawdown": 2.0,
     "beta_concentration": 1.0,
@@ -71,7 +70,6 @@ def compute_benchmarks(test_df: "pd.DataFrame", initial_balance: float) -> dict:
     Benchmarks:
         - Buy & Hold (1/3 em cada ativo)
         - 100% CDI (taxa livre de risco)
-        - 100% BOVA11 (mercado)
 
     Parameters
     ----------
@@ -111,15 +109,6 @@ def compute_benchmarks(test_df: "pd.DataFrame", initial_balance: float) -> dict:
 
     cdi_total_return = (cdi_values[-1] - initial_balance) / initial_balance
 
-    # --- 100% BOVA11 ---
-    bova_value = initial_balance
-    bova_values = [bova_value]
-    for r in ret_bova11:
-        bova_value *= (1.0 + r)
-        bova_values.append(bova_value)
-
-    bova_total_return = (bova_values[-1] - initial_balance) / initial_balance
-
     benchmarks = {
         "buy_hold": {
             "values": bh_values,
@@ -130,11 +119,6 @@ def compute_benchmarks(test_df: "pd.DataFrame", initial_balance: float) -> dict:
             "values": cdi_values,
             "total_return": cdi_total_return,
             "final_value": cdi_values[-1],
-        },
-        "bova11": {
-            "values": bova_values,
-            "total_return": bova_total_return,
-            "final_value": bova_values[-1],
         },
     }
 
@@ -197,9 +181,6 @@ def main():
     print(f"  {'100% CDI':<20} "
           f"R$ {benchmarks['cdi']['final_value']:>12,.2f} "
           f"{benchmarks['cdi']['total_return']*100:>8.2f}%")
-    print(f"  {'100% BOVA11':<20} "
-          f"R$ {benchmarks['bova11']['final_value']:>12,.2f} "
-          f"{benchmarks['bova11']['total_return']*100:>8.2f}%")
 
     # --- Fase 7: Salvar resultados ---
     print(f"\nFASE 7: Salvando resultados...\n")
@@ -270,7 +251,6 @@ def main():
         "returns": [float(r) for r in eval_results["returns"]],
         "benchmark_buy_hold": [float(x) for x in benchmarks["buy_hold"]["values"]],
         "benchmark_cdi": [float(x) for x in benchmarks["cdi"]["values"]],
-        "benchmark_bova11": [float(x) for x in benchmarks["bova11"]["values"]],
     }
     with open(eval_path, "w") as f:
         json.dump(eval_data, f, indent=2)

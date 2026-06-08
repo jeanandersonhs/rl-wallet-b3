@@ -28,7 +28,6 @@ BASE_ENV_CONFIG = {
     "window_size": 20,
     "weight_delta": 0.10,
     "lambda_transaction": 0.1,
-    "alpha_benchmark": 0.5,
     "alpha_diversification": 0.2,
     "beta_drawdown": 2.0,
     "beta_concentration": 1.0,
