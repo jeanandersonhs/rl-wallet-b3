@@ -1,14 +1,5 @@
 """
 PortfolioEnv — Ambiente de Reinforcement Learning para Gestão de Portfólio (B3)
-
-Interface compatível com OpenAI Gym (reset/step/render), sem dependência direta.
-
-Ativos: ITUB4 (ação), BOVA11 (ETF Ibovespa), BBAS3 (ação)
-Estado: vetor contínuo de 18 dimensões
-Ações: 27 combinações discretas (comprar/manter/vender por ativo)
-Recompensa: Sharpe Ratio modificado + bônus/penalidades
-
-Referência completa: documentacao.txt, seções 3 e 6.
 """
 
 import itertools
@@ -56,17 +47,17 @@ class PortfolioEnv:
         window_size : int
             Janela para rolling mean/std (dias).
         weight_delta : float
-            Δw aplicado por ação de compra/venda.
+             aplicado por ação de compra/venda.
         lambda_transaction : float
-            λ — coeficiente de penalidade de transação na recompensa.
+             — coeficiente de penalidade de transação na recompensa.
         alpha_benchmark : float
-            α₁ — bônus por superar BOVA11.
+             — bônus por superar BOVA11.
         alpha_diversification : float
             α₂ — bônus por diversificação (via HHI).
         beta_drawdown : float
-            β₁ — penalidade por drawdown excessivo.
+             — penalidade por drawdown excessivo.
         beta_concentration : float
-            β₂ — penalidade por concentração em um único ativo.
+             — penalidade por concentração em um único ativo.
         drawdown_threshold : float
             Limite de drawdown antes da penalidade (10%).
         concentration_threshold : float
@@ -110,12 +101,10 @@ class PortfolioEnv:
         self.n_steps = len(df)
 
         # --- Espaço de ações ---
-        # Lookup table: cada linha é (delta_ITUB4, delta_BOVA11, delta_BBAS3)
-        # com valores em {-1, 0, +1}, depois multiplicados por weight_delta
         self._action_deltas = np.array(
             list(itertools.product([-1, 0, 1], repeat=self.n_assets)),
             dtype=np.float64
-        )  # shape (27, 3)
+        ) 
         self.n_actions = len(self._action_deltas)  # 27
         self.action_space_size = self.n_actions
         self.observation_space_size = 18
@@ -264,10 +253,7 @@ class PortfolioEnv:
 
         return state
 
-    # ─────────────────────────────────────────────────────────────────────
-    # 6. CALCULATE REWARD
-    # ─────────────────────────────────────────────────────────────────────
-
+  
     def _calculate_reward(
         self,
         portfolio_return: float,
@@ -278,11 +264,11 @@ class PortfolioEnv:
         Calcula a recompensa completa do timestep.
 
         R(t) = sharpe_instantâneo
-             + α₁ · max(0, rₚ − r_BOVA11)       (bônus benchmark)
-             + α₂ · (1 − HHI)                    (bônus diversificação)
-             − β₁ · max(0, dd − threshold_dd)     (penalidade drawdown)
-             − β₂ · max(0, max(w) − threshold_c)  (penalidade concentração)
-             − λ  · custo_transação               (penalidade transação)
+             + alpha_1 · max(0, rₚ − r_BOVA11)       (bônus benchmark)
+             + alpha_2 · (1 − HHI)                    (bônus diversificação)
+             − beta_1 · max(0, dd − threshold_dd)     (penalidade drawdown)
+             − beta_2 · max(0, max(w) − threshold_c)  (penalidade concentração)
+             −  lambda  · custo_transação               (penalidade transação)
 
         Parameters
         ----------
@@ -317,8 +303,8 @@ class PortfolioEnv:
         )
 
         # --- Bônus: diversificação (HHI) ---
-        # HHI = Σ wᵢ²; quanto menor, mais diversificado
-        # HHI = 1/N para diversificação perfeita, HHI = 1 para concentração total
+        # HHI = soma wi²; quanto menor, mais diversificado
+        # HHI = 1/N para diversificação, HHI = 1 para concentração total
         hhi = np.sum(self.weights ** 2)
         bonus_diversification = self.alpha_diversification * (1.0 - hhi)
 
@@ -350,10 +336,6 @@ class PortfolioEnv:
         )
 
         return reward
-
-    # ─────────────────────────────────────────────────────────────────────
-    # 7. STEP
-    # ─────────────────────────────────────────────────────────────────────
 
     def step(self, action: int):
         """
@@ -416,11 +398,7 @@ class PortfolioEnv:
         }
 
         return obs, reward, done, info
-
-    # ─────────────────────────────────────────────────────────────────────
-    # 8. RENDER
-    # ─────────────────────────────────────────────────────────────────────
-
+    
     def render(self, mode: str = "human"):
         """
         Imprime o estado atual do ambiente no console.
