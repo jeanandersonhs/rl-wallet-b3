@@ -34,7 +34,7 @@ Ativos selecionados:
   • BBAS3  — Ação (setor bancário, Banco do Brasil)
 
 Justificativa: ativos de alta liquidez na B3, com dados históricos abundantes e
-comportamentos correlacionados porém distintos (dois bancos + índice amplo).
+comportamentos correlacionados porém distintos.
 
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -63,7 +63,7 @@ Merge dos dois acima. Colunas adicionais:
   • treino.csv: 2019-01-03 → 2023-12-28 (1.227 dias úteis, ~80%)
   • teste.csv:  2024-01-02 → 2024-12-30 (251 dias úteis, ~20%)
 
-2.5 Dados Auxiliares (dados/archive/)
+2.5 Dados Auxiliares (dados/archive/) (Não use os para nada)
 ─────────────────────────────────────
   • economic_indicators.csv: Taxa Selic, IPCA, IGP-M, INPC, Desemprego (2010-2025)
   • bovespa_stocks.csv: histórico completo de todas as ações da B3 (~112 MB)
@@ -160,8 +160,6 @@ A recompensa principal é baseada no Sharpe Ratio modificado:
 ─────────────────────────────────────────
 
 RECOMPENSAS POSITIVAS (bônus):
-  + α₁ · max(0, rₚ(t) − r_BOVA11(t))
-      → Bônus por superar o benchmark IBOVESPA (via BOVA11)
   + α₂ · (1 − HHI(t))
       → Bônus por diversificação mantida
         HHI = Σᵢ wᵢ² (Índice Herfindahl-Hirschman)
@@ -176,7 +174,6 @@ PENALIDADES (malus):
       → Penalidade por rebalanceamento frequente (já inclusa acima)
 
 Hiperparâmetros sugeridos:
-  α₁ = 0.5   (bônus benchmark)
   α₂ = 0.2   (bônus diversificação)
   β₁ = 2.0   (penalidade drawdown)
   β₂ = 1.0   (penalidade concentração)
@@ -184,7 +181,7 @@ Hiperparâmetros sugeridos:
   c  = 0.001 (custo de transação unitário, ~0.1% por operação)
 
 Recompensa completa:
-  R_total(t) = R_sharpe(t) + bônus_benchmark + bônus_diversificação
+  R_total(t) = R_sharpe(t) + bônus_diversificação
                − penalidade_drawdown − penalidade_concentração
 
 3.6 Fator de Desconto γ
@@ -220,15 +217,15 @@ Limitações: a discretização perde informação; escala mal para estados gran
 ──────────────────────────────────────
 Arquivo: agentes/TD_learning.py
 
-Abordagem: SARSA (on-policy TD control)
+Abordagem: TD_LEARNING (on-policy TD control)
   • Atualização: Q(s,a) ← Q(s,a) + α·[r + γ·Q(s',a') − Q(s,a)]
   • a' é a ação realmente tomada em s' (on-policy)
 
-Diferença vs Q-Learning: SARSA é mais conservador pois aprende sobre a
+Diferença vs Q-Learning: TD_LEARNING é mais conservador pois aprende sobre a
 política que está executando, não sobre a política ótima. Isso pode ser
 vantajoso em finanças onde exploração excessiva é custosa.
 
-4.3 Extensão Futura — Deep Q-Network (DQN)
+4.3 Extensão Futura — Deep Q-Network (DQN) (nao fazer)
 ───────────────────────────────────────────
 Arquivo futuro: agentes/DQN.py (a ser implementado)
 
@@ -246,7 +243,6 @@ Para superar as limitações da discretização:
 
 rl-wallet-b3/
 ├── main.py                    # Ponto de entrada — orquestração de treino/teste
-├── pyproject.toml             # Configuração do projeto (Poetry)
 ├── requirements.txt           # Dependências
 ├── documentacao.txt           # Este arquivo
 │
@@ -256,7 +252,7 @@ rl-wallet-b3/
 │
 ├── agentes/                   # Agentes de RL
 │   ├── Q_learning.py          # AgentQLearning
-│   └── TD_learning.py         # AgentTD (SARSA)
+│   └── TD_learning.py         # AgentTD (TD_LEARNING)
 │
 ├── src/                       # Utilidades e processamento
 │   ├── data_loader.py         # Carregamento e pré-processamento dos CSVs
@@ -352,7 +348,6 @@ Fase 3 — Avaliação no Teste:
 Fase 4 — Comparação com Benchmarks:
   • Buy & Hold (1/3 em cada ativo)
   • 100% CDI (taxa livre de risco)
-  • 100% BOVA11 (mercado)
 
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -372,7 +367,6 @@ Fase 4 — Comparação com Benchmarks:
 │ Win Rate                    │ % de dias com rₚ > 0                           │
 │ Turnover Médio              │ mean(Σᵢ |Δwᵢ|) por dia                        │
 │ Retorno vs CDI              │ ret_acum_portfolio − ret_acum_CDI              │
-│ Retorno vs BOVA11           │ ret_acum_portfolio − ret_acum_BOVA11           │
 └─────────────────────────────┴────────────────────────────────────────────────┘
 
 
@@ -389,7 +383,7 @@ Agente Q-Learning:
   n_bins:               5 (discretização)
   n_episodes:           500
 
-Agente TD (SARSA):
+Agente TD (TD_LEARNING):
   learning_rate (α):    0.1 → decay para 0.01
   discount_factor (γ):  0.99
   epsilon_start:        1.0
@@ -405,7 +399,6 @@ Ambiente:
 
 Recompensa:
   λ  (penalidade transação):    0.1
-  α₁ (bônus benchmark):        0.5
   α₂ (bônus diversificação):   0.2
   β₁ (penalidade drawdown):    2.0
   β₂ (penalidade concentração): 1.0
@@ -436,7 +429,7 @@ FASE 3 — Agente Q-Learning
   [ ] Treinar por 500 episódios no treino.csv
   [ ] Avaliar no teste.csv
 
-FASE 4 — Agente TD (SARSA)
+FASE 4 — Agente TD (TD_LEARNING)
   [ ] Implementar agentes/TD_learning.py completo
   [ ] Treinar e avaliar
   [ ] Comparar com Q-Learning
@@ -444,7 +437,7 @@ FASE 4 — Agente TD (SARSA)
 FASE 5 — Visualização e Análise
   [ ] Implementar src/visualization.py
   [ ] Gráficos: evolução do portfólio, pesos ao longo do tempo
-  [ ] Gráficos: comparação com benchmarks (CDI, BOVA11, Buy&Hold)
+  [ ] Gráficos: comparação com benchmarks (CDI, Buy&Hold)
   [ ] Tabela de métricas finais
   [ ] Salvar resultados em resultados/
 
@@ -487,7 +480,7 @@ Utilidades:
   HHI     — Índice Herfindahl-Hirschman (medida de concentração)
   Sharpe  — Sharpe Ratio (retorno ajustado ao risco)
   Drawdown— Queda percentual do pico ao vale do portfólio
-  SARSA   — State-Action-Reward-State-Action (TD control on-policy)
+  TD_LEARNING   — State-Action-Reward-State-Action (TD control on-policy)
   DQN     — Deep Q-Network
   ε-greedy— Política de exploração: ação aleatória com prob ε, greedy com 1−ε
 

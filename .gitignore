@@ -84,11 +84,7 @@ ipython_config.py
 #   However, if you're running as a top-level application, it is recommended.
 #Pipfile.lock
 
-# poetry
-#   Using Poetry, we lock our dependencies with poetry.lock.
-#   If this is a package/library, do not ignore poetry.lock.
-#   If you are building an application, you should keep it.
-# .venv/ is ignored below under environments.
+# pipenv / poetry / pdm lockfiles are not used by this project
 
 # pdm
 #   Similar to Pipenv and Poetry, PDM writes lockfile in pdm.lock.
@@ -169,5 +165,3 @@ data/
 *.xlsx
 *.parquet
 *.json
-!pyproject.toml
-!poetry.lock
