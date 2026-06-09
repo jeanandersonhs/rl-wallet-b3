@@ -1,7 +1,7 @@
 """
 data_loader.py — Carregamento e validação dos CSVs de mercado.
 
-Responsável por:
+Responsavel por:
   - Carregar treino.csv e teste.csv
   - Converter coluna 'data' para datetime
   - Validar que todas as colunas necessárias para o PortfolioEnv existem
@@ -17,8 +17,6 @@ REQUIRED_COLUMNS = [
     "ITUB4", "BOVA11", "BBAS3",
     "retorno_ITUB4", "retorno_BOVA11", "retorno_BBAS3",
     "CDI_decimal",
-    "retorno_acima_cdi_ITUB4", "retorno_acima_cdi_BOVA11",
-    "retorno_acima_cdi_BBAS3",
 ]
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dados")
