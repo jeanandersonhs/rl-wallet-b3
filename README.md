@@ -1,65 +1,27 @@
-# 📈 RL-Wallet-B3: Gestão de Portfólio com Aprendizado por Reforço
+# RL-Wallet-B3: Gestão de Portfólio com Aprendizado por Reforço
 
 Este projeto implementa agentes de Aprendizado por Reforço (Reinforcement Learning - RL) para a gestão inteligente e autônoma de um portfólio de investimentos no mercado financeiro brasileiro (B3).
 
 O objetivo principal é maximizar o retorno financeiro ajustado ao risco (Sharpe Ratio), decidindo dinamicamente como distribuir o capital entre diferentes ativos ao longo do tempo.
 
-## 🎯 Principais Características
-
-### Agentes de Reinforcement Learning (Refatorados)
-
-- **Q-Learning Tabular** (Off-policy TD control) — herda de `BaseAgent`
-- **TD-Learning (SARSA)** (On-policy TD control) — herda de `BaseAgent`
-- **BaseAgent** — classe base compartilhada com funcionalidades comuns a ambos os agentes, incluindo:
-  - Cálculo automático de bins de discretização via simulação
-  - Política epsilon-greedy com decaimento
-  - Rastreamento de recompensas médias e descontadas
-
-### Ambiente Customizado
-
-- **PortfolioEnv**: Ambiente MDP que modela o mercado da B3 com:
-  - Custos de transação realistas
-  - Penalidades por concentração excessiva
-  - Bônus por diversificação
-  - Penalidades por drawdown
-  - Taxa livre de risco (CDI) integrada
-
-### Discretização Inteligente de Estados
-
-- Conversão automática de 18 dimensões contínuas em espaço discreto
-- Bins calculados via simulação monte-carlo no início do treinamento
-- Features incluem: retornos diários, médias móveis, excesso sobre CDI, volatilidade
-
-### Benchmarks Integrados
-
-- Comparação automática contra:
-  - 100% CDI (sem risco)
-  - Estratégia "Buy & Hold" (1/3 em cada ativo)
-
-### Varredura de Hiperparâmetros (Hyperparameter Sweeps)
-
-- Scripts experimentais para testar sensibilidade em relação a:
-  - Discretização (`n_bins`)
-  - Taxas de decaimento (epsilon, alpha)
-  - Custos de transação
-  - Rebalanceamento
+## Principais Características
 
 ## Ativos Selecionados
 
-Para evitar a explosão combinatória do espaço de estados, o escopo foi restrito a 3 ativos altamente líquidos da B3, com comportamentos distintos:
+Para evitar a explosão combinatória do espaço de estados, o escopo foi restrito a 3 ativos da B3, com comportamentos distintos:
 
 - **ITUB4**: Ação do setor financeiro (Itaú Unibanco).
 - **BBAS3**: Ação do setor financeiro (Banco do Brasil).
 - **BOVA11**: ETF que replica o Ibovespa (Exposição ampla ao mercado).
 
-## 🛠️ Tecnologias e Bibliotecas
+## Tecnologias e Bibliotecas
 
 - **Linguagem**: Python 3.12+
 - **Gerenciador de Dependências**: `pip` via `requirements.txt`
 - **Core ML & Dados**: `numpy`, `pandas`
 - **Visualização**: `matplotlib`, `seaborn`, Jupyter Notebooks
 
-## ⚙️ Como Instalar
+##  Como Instalar
 
 1. **Clone o repositório**:
 
@@ -103,7 +65,7 @@ Isso irá:
 4. Calcular bins de discretização via simulação monte-carlo (BaseAgent)
 5. Treinar por N episódios (default: 500)
 6. Avaliar no conjunto de teste
-7. Comparar com benchmarks (Buy&Hold, 100% CDI)
+7. Comparar com benchmarks (100% CDI)
 8. Salvar agente, logs e métricas em `resultados/`
 
 ### Rodar Experimentos (Hyperparameter Sweeps)
@@ -118,7 +80,6 @@ python experiments_td.py
 python experiments_q_learning.py
 ```
 
-Dica: Ajuste `N_EPISODES` nos scripts antes de executar varreduras completas (padrão: 5000 para sweeps).
 
 ### Visualização e Análise de Resultados
 
@@ -135,7 +96,7 @@ O notebook inclui:
 - Alocação dinâmica de pesos dos agentes
 - Análise de comparativos com benchmarks
 
-## 📁 Estrutura do Projeto (Refatorado)
+## Estrutura do Projeto (Refatorado)
 
 ```
 rl-wallet-b3/
@@ -166,41 +127,9 @@ rl-wallet-b3/
 └── resultados/                   # Outputs: JSONs, histórico de treino, modelos (pickle)
 ```
 
-### Refatorações Recentes
-
-✨ **v2.0 - Refatoração com BaseAgent**:
-- Criação de `BaseAgent` com funcionalidades compartilhadas entre Q-Learning e TD-Learning
-- Simplificação de código reduzindo duplicação entre agentes
-- Rastreamento automático de recompensas médias e descontadas
-- Migração de lógica de dados para módulo `helpers/`
-- Melhor separação de responsabilidades (MDP, agentes, utilitários)
-
-## 🏗️ Arquitetura dos Agentes
-
-### Hierarquia de Classes
-
-```
-BaseAgent (agentes/base_agent.py)
-├── AgentQLearning (agentes/Q_learning.py)
-└── AgentTD (agentes/TD_learning.py)
-```
-
-### BaseAgent - Classe Base Comum
-
-A classe `BaseAgent` centraliza funcionalidades compartilhadas:
-
-- **Discretização Inteligente**: Cálcula bins via simulação Monte Carlo (`compute_bins_from_simulation`)
-- **Q-Table Management**: Tabela Q persistente com `defaultdict(lambda: np.zeros(n_actions))`
-- **Política Epsilon-Greedy**: Exploração vs Exploração com decaimento
-- **Persistência**: Métodos `save()` e `load()` usando pickle
-- **Rastreamento de Métricas**: 
-  - `mean_reward` por episódio
-  - `discounted_reward` (com fator gamma)
-  - `td_errors` para análise de convergência
-
 ### Diferenças entre Q-Learning e TD-Learning
 
-| Aspecto | Q-Learning | TD-Learning (SARSA) |
+| Aspecto | Q-Learning | TD-Learning  |
 |---------|-----------|---------------------|
 | **Tipo** | Off-policy | On-policy |
 | **Target** | `reward + γ * max(Q[s'])` | `reward + γ * Q[s', a']` |
@@ -208,115 +137,8 @@ A classe `BaseAgent` centraliza funcionalidades compartilhadas:
 | **Exploração** | Aprende política ótima mesmo explorando | Aprende a política atual |
 | **Convergência** | Mais lenta, mas ótima | Mais rápida, convergência garantida |
 
-## 🔌 Exemplos de Uso (API)
 
-### Treinar um Agente Q-Learning
-
-```python
-from ambiente.portfolio_env import PortfolioEnv
-from agentes.Q_learning import AgentQLearning
-from helpers.data_loader import load_train_data
-
-# Carregar dados
-train_df = load_train_data()
-
-# Criar ambiente
-env = PortfolioEnv(train_df, initial_balance=100_000.0)
-
-# Instanciar agente Q-Learning
-agent = AgentQLearning(
-    env=env,
-    n_bins=5,
-    alpha=0.1,
-    gamma=0.99,
-    epsilon=1.0,
-    epsilon_min=0.01,
-    epsilon_decay=0.995,
-    n_sim_episodes=10,  # para calcular bins
-    seed=42
-)
-
-# Treinar
-history = agent.train(env, n_episodes=500, log_interval=50)
-
-# Salvar agente
-agent.save("resultados/q_learning_agent.pkl")
-```
-
-### Usar Agente para Inferência (Teste)
-
-```python
-from helpers.data_loader import load_test_data
-from agentes.Q_learning import AgentQLearning
-
-# Carregar agente treinado
-agent = AgentQLearning.load("resultados/q_learning_agent.pkl")
-
-# Carregar dados de teste
-test_df = load_test_data()
-env_test = PortfolioEnv(test_df, initial_balance=100_000.0)
-
-# Executar episódio de teste (sem exploração)
-state, info = env_test.reset()
-done = False
-total_reward = 0
-
-while not done:
-    # Usar política greedy (epsilon=0)
-    state_discrete = discretize_state(state, agent.bins)
-    action = agent.select_action(state_discrete, epsilon=0.0)
-    state, reward, done, truncated, info = env_test.step(action)
-    total_reward += reward
-
-print(f"Recompensa total no teste: {total_reward}")
-```
-
-## Recompensa - Markov Decision Process(MDP)
-
-A recompensa (`Reward`) a cada step de tempo (dia útil) foi desenhada para otimizar portfólios no mundo real e inclui:
-
-- **Sharpe Instantâneo**: (Retorno da Carteira - CDI) / Volatilidade.
-- **Bônus de Diversificação**: Incentivo para manter alocação distribuída (via índice HHI).
-- **Penalidade de Drawdown**: Desconto caso a carteira atinja quedas abruptas desde o topo histórico.
-- **Penalidade de Concentração**: Desconto se a carteira alocar muito peso (>60%) em um único ativo.
-- **Custos de Transação**: Desconto proporcional à variação de carteira e ao fator de corretagem simulado.
-
-## 📚 Documentação Completa
-
-Para uma análise profunda sobre:
-- Formulação matemática do MDP
-- Equações de Q-Learning e TD-Learning
-- Detalhes da discretização de estados
-- Explicação completa da função de recompensa
-- Benchmarks e métricas de performance
-
-Consulte o arquivo **`documentacao.txt`** na raiz do projeto (referência: seções 1-9).
-
-## 🧪 Testes
-
-O projeto inclui testes unitários para validação de componentes:
-
-```bash
-pytest tests/ -v
-```
-
-Principais testes:
-- `test_q_agent.py` — Validação do AgentQLearning
-- `test_td_agent.py` — Validação do AgentTD
-- `test_portfolio_env.py` — Validação do PortfolioEnv
-
-## 📊 Resultados Esperados
-
-Após treinar com as configurações padrão (500 episódios):
-
-- **Q-Learning**: Sharpe Ratio ~1.2-1.5 (superior a Buy&Hold)
-- **TD-Learning**: Sharpe Ratio ~0.9-1.2 (mais conservador, menos volatilidade)
-- **Buy & Hold**: Sharpe Ratio ~0.3-0.8 (baseline)
-- **100% CDI**: Sharpe Ratio ~0.0 (sem risco)
-
-Os logs de treinamento incluem gráficos de convergência, evolução de recompensas e alocações dinâmicas.
-
-## 🤝 Contribuindo
+## Contribuindo
 
 Para contribuir com melhorias:
 
@@ -326,10 +148,6 @@ Para contribuir com melhorias:
 4. Push para a branch (`git push origin feature/melhoria`)
 5. Abra um Pull Request
 
-## 📝 Licença
+##  Autores
 
-Este projeto está sob licença MIT. Veja [LICENSE](LICENSE) para detalhes.
-
-## 👨‍💻 Autor
-
-Desenvolvido por **Jean Anderson** como exploração de Reinforcement Learning aplicado a gestão de portfólios.
+Desenvolvido por **Jean Anderson e Rebeca Oliveira** como exploração de Reinforcement Learning aplicado a gestão de portfólios.
