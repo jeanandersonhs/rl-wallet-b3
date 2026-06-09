@@ -1,17 +1,3 @@
-"""
-main.py — Ponto de entrada: orquestração de treino e avaliação do Q-Learning.
-
-Pipeline:
-    1. Carregar dados de treino e teste
-    2. Criar ambiente PortfolioEnv com dados de treino
-    3. Instanciar AgentQLearning e calcular bins de discretização
-    4. Treinar por N episódios
-    5. Avaliar no conjunto de teste
-    6. Comparar com benchmarks (Buy&Hold, CDI)
-    7. Salvar agente treinado e resultados
-
-Referência: documentacao.txt, seção 7.
-"""
 
 import os
 import json
@@ -23,11 +9,8 @@ from ambiente.portfolio_env import PortfolioEnv
 from agentes.Q_learning import AgentQLearning
 
 
-# ═════════════════════════════════════════════════════════════════════════
-# CONFIGURAÇÃO
-# ═════════════════════════════════════════════════════════════════════════
 
-# Hiperparâmetros do agente (documentacao.txt seção 9)
+# Hiperparâmetros do agente
 AGENT_CONFIG = {
     "n_bins": 5,
     "alpha": 0.1,
@@ -39,7 +22,7 @@ AGENT_CONFIG = {
     "seed": 42,
 }
 
-# Hiperparâmetros do ambiente (documentacao.txt seção 9)
+# Hiperparâmetros do ambiente
 ENV_CONFIG = {
     "initial_balance": 100_000.0,
     "transaction_cost": 0.001,
@@ -54,49 +37,44 @@ LOG_INTERVAL = 50
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "resultados")
 
 
-# ═════════════════════════════════════════════════════════════════════════
-# MAIN
-# ═════════════════════════════════════════════════════════════════════════
-
 def main():
-    """Pipeline principal de treino e avaliação."""
 
-    print("╔══════════════════════════════════════════════════════════╗")
-    print("║         RL-WALLET-B3 — Q-Learning Tabular              ║")
-    print("║         Gestão de Portfólio com Aprendizado por Reforço ║")
-    print("╚══════════════════════════════════════════════════════════╝\n")
+
+    print(" RL-WALLET-B3 — Q-Learning")
+    print("Gestão de Portfólio com Aprendizado por Reforço")
+
 
     # --- Fase 1: Carregar dados ---
-    print("▶ FASE 1: Carregando dados...\n")
+    print(" Carregando dados...\n")
     train_df = load_train_data()
     test_df = load_test_data()
 
-    # --- Fase 2: Criar ambiente de treino ---
-    print("\n FASE 2: Criando ambiente de treino...\n")
+    # --- Criar ambiente de treino ---
+    print("\nCriando ambiente de treino...\n")
     train_env = PortfolioEnv(train_df, **ENV_CONFIG)
     print(f"  Ambiente criado: {train_env.n_steps} steps, "
           f"{train_env.n_actions} ações, "
           f"{train_env.observation_space_size} features de estado")
 
-    # --- Fase 3: Criar agente Q-Learning ---
-    print("\nFASE 3: Criando agente Q-Learning...\n")
+    # --- Criar agente Q-Learning ---
+    print("\nCriando agente Q-Learning...\n")
     agent = AgentQLearning(train_env, **AGENT_CONFIG)
 
-    # --- Fase 4: Treinar ---
-    print("\nFASE 4: Treinamento...\n")
+    # ---Treinar ---
+    print("\nTreinamento...\n")
     history = agent.train(
         train_env,
         n_episodes=N_EPISODES,
         log_interval=LOG_INTERVAL,
     )
 
-    # --- Fase 5: Avaliar no teste ---
-    print("\nFASE 5: Avaliação no conjunto de teste...\n")
+    # --- Avaliar numa base teste ---
+    print("\nAvaliação no conjunto de teste...\n")
     test_env = PortfolioEnv(test_df, **ENV_CONFIG)
     eval_results = agent.evaluate(test_env)
 
-    # --- Fase 6: Benchmarks ---
-    print("FASE 6: Comparação com benchmarks...\n")
+    # --- Benchmarks ---
+    print(" Comparação com benchmarks...\n")
     benchmarks = compute_benchmarks(test_df, ENV_CONFIG["initial_balance"])
 
     print(f"  {'Estratégia':<20} {'Valor Final':>15} {'Retorno':>10}")
@@ -112,7 +90,7 @@ def main():
           f"{benchmarks['cdi']['total_return']*100:>8.2f}%")
 
     # --- Fase 7: Salvar resultados ---
-    print(f"\nFASE 7: Salvando resultados...\n")
+    print(f"\nSalvando resultados...\n")
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
     # Salvar agente
@@ -191,9 +169,7 @@ def main():
         json.dump(eval_data, f, indent=2)
     print(f"  Dados de avaliação salvos em: {eval_path}")
 
-    print("\n╔══════════════════════════════════════════════════════════╗")
-    print("║                    PIPELINE CONCLUÍDO                   ║")
-    print("╚══════════════════════════════════════════════════════════╝\n")
+    print("="*60)
 
 
 if __name__ == "__main__":

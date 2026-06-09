@@ -19,10 +19,6 @@ from ambiente.portfolio_env import PortfolioEnv
 from agentes.TD_learning import AgentTD
 
 
-# ═════════════════════════════════════════════════════════════════════════
-# CONFIGURAÇÃO
-# ═════════════════════════════════════════════════════════════════════════
-
 # Hiperparâmetros do agente TD
 AGENT_CONFIG = {
     "n_bins": 5,
@@ -50,10 +46,6 @@ LOG_INTERVAL = 50
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "resultados")
 
 
-# ___________________________________________________________________________________
-# MAIN
-#___________________________________________________________________________________
-
 def main():
     """Pipeline principal de treino e avaliação TD_LEARNING."""
 
@@ -63,23 +55,23 @@ def main():
     print("=================================================================================")
 
     # --- Fase 1: Carregar dados ---
-    print("▶ FASE 1: Carregando dados...\n")
+    print("Carregando dados...\n")
     train_df = load_train_data()
     test_df = load_test_data()
 
     # --- Fase 2: Criar ambiente de treino ---
-    print("\n▶ FASE 2: Criando ambiente de treino...\n")
+    print("\nCriando ambiente de treino...\n")
     train_env = PortfolioEnv(train_df, **ENV_CONFIG)
     print(f"  Ambiente criado: {train_env.n_steps} steps, "
           f"{train_env.n_actions} ações, "
           f"{train_env.observation_space_size} features de estado")
 
     # --- Fase 3: Criar agente TD_LEARNING ---
-    print("\n▶ FASE 3: Criando agente TD_LEARNING (TD)...\n")
+    print("\nCriando agente TD_LEARNING (TD)...\n")
     agent = AgentTD(train_env, **AGENT_CONFIG)
 
     # --- Fase 4: Treinar ---
-    print("\n▶ FASE 4: Treinamento TD_LEARNING...\n")
+    print("\nTreinamento TD_LEARNING...\n")
     history = agent.train(
         train_env,
         n_episodes=N_EPISODES,
@@ -87,12 +79,12 @@ def main():
     )
 
     # --- Fase 5: Avaliar no teste ---
-    print("\n▶ FASE 5: Avaliação no conjunto de teste...\n")
+    print("\nAvaliação no conjunto de teste...\n")
     test_env = PortfolioEnv(test_df, **ENV_CONFIG)
     eval_results = agent.evaluate(test_env)
 
     # --- Fase 6: Benchmarks ---
-    print("▶ FASE 6: Comparação com benchmarks...\n")
+    print("Comparação com benchmarks...\n")
     benchmarks = compute_benchmarks(test_df, ENV_CONFIG["initial_balance"])
 
     print(f"  {'Estratégia':<20} {'Valor Final':>15} {'Retorno':>10}")
@@ -108,7 +100,7 @@ def main():
           f"{benchmarks['cdi']['total_return']*100:>8.2f}%")
 
     # --- Fase 7: Salvar resultados ---
-    print(f"\n▶ FASE 7: Salvando resultados...\n")
+    print(f"\nSalvando resultados...\n")
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
     # Salvar agente

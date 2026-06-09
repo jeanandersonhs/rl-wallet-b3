@@ -10,7 +10,7 @@ import pandas as pd
 
 class PortfolioEnv:
     """
-    Ambiente tabular simplificado para gestao de portfolio.
+    Ambiente simplificado para gestao de portfolio.
     """
 
     def __init__(
@@ -114,7 +114,7 @@ class PortfolioEnv:
 
     def step(self, action: int):
         """
-        Executa uma transicao do MDP.
+        Executa uma transicao
 
         Returns
         -------

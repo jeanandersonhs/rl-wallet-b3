@@ -1,6 +1,3 @@
-"""
-AgentQLearning - Q-Learning tabular para gestao de portfolio.
-"""
 
 import numpy as np
 
@@ -20,7 +17,7 @@ class AgentQLearning(BaseAgent):
         next_state: tuple,
         done: bool,
     ) -> float:
-        """Atualiza Q(s, a) usando target off-policy max_a Q(s', a)."""
+        """Atualiza Q(s, a) usando target  max_a Q(s', a)."""
         current_q = self.q_table[state][action]
         if done:
             td_target = reward
@@ -37,7 +34,6 @@ class AgentQLearning(BaseAgent):
         n_episodes: int = 500,
         log_interval: int = 50,
     ) -> dict:
-        """Treina o agente por N episodios."""
         history = {
             "episode_rewards": [],
             "episode_mean_rewards": [],
@@ -110,7 +106,7 @@ class AgentQLearning(BaseAgent):
         print("  TREINAMENTO CONCLUIDO")
         print(f"  Estados visitados: {len(self.q_table):,}")
         print(f"  epsilon final: {self.epsilon:.4f}")
-        print(f"  alpha fixo: {self.alpha:.4f}")
+        print(f"  alpha: {self.alpha:.4f}")
         print(
             f"  Reward medio (ultimos 50): "
             f"{np.mean(history['episode_rewards'][-50:]):.4f}"

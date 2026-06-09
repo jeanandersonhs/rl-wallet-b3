@@ -1,5 +1,5 @@
 """
-AgentTD - TD/SARSA tabular on-policy para gestao de portfolio.
+AgentTD - TD tabular on-policy para gestao de portfolio.
 """
 
 import numpy as np

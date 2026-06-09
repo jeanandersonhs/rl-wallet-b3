@@ -24,7 +24,7 @@ class BaseAgent:
         epsilon: float = 1.0,
         epsilon_min: float = 0.01,
         epsilon_decay: float = 0.995,
-        n_sim_episodes: int = 10,
+        n_sim_episodes: int = 10, # numero de episodios aleatorios para calcular os intervalo de discretizacao
         seed: int = 42,
     ):
         self.n_actions = env.n_actions # numero de acoes discretas possiveis (27 no caso do PortfolioEnv)
@@ -55,7 +55,7 @@ class BaseAgent:
         return discretize_state(state, self.bins)
 
     def choose_action(self, state: tuple) -> int:
-        """Seleciona acao via politica epsilon-greedy."""
+        """Seleciona acao via politica epsilon-gulosa."""
         if self.rng.random() < self.epsilon:
             return int(self.rng.randint(0, self.n_actions))
 
@@ -65,11 +65,11 @@ class BaseAgent:
         return int(self.rng.choice(best_actions))
 
     def decay_epsilon(self) -> None:
-        """Decai apenas epsilon; alpha permanece fixo."""
+        """Decai epsilon apos cada episodio"""
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
     def evaluate(self, env) -> dict:
-        """Avalia o agente treinado usando apenas a politica greedy."""
+        """Avalia o agente treinado"""
         state_continuous = env.reset()
         state = self.discretize(state_continuous)
 
