@@ -11,10 +11,6 @@ import pandas as pd
 class PortfolioEnv:
     """
     Ambiente tabular simplificado para gestao de portfolio.
-
-    O estado contem apenas retornos diarios dos ativos e pesos atuais da
-    carteira. A recompensa prioriza retorno liquido, com regularizadores
-    pequenos para diversificacao e concentracao.
     """
 
     def __init__(

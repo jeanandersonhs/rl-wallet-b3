@@ -8,7 +8,7 @@ from agentes.base_agent import BaseAgent
 
 
 class AgentTD(BaseAgent):
-    """Agente TD on-policy, equivalente ao loop SARSA."""
+    """Agente TD on-policy."""
 
     agent_name = "TD-Learning"
 
