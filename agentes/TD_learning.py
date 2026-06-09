@@ -41,6 +41,8 @@ class AgentTD(BaseAgent):
         """Treina o agente por N episodios usando update on-policy."""
         history = {
             "episode_rewards": [],
+            "episode_mean_rewards": [],
+            "episode_discounted_rewards": [],
             "episode_portfolio_values": [],
             "episode_epsilons": [],
             "episode_alphas": [],
@@ -60,6 +62,7 @@ class AgentTD(BaseAgent):
             action = self.choose_action(state)
 
             total_reward = 0.0
+            discounted_reward = 0.0
             total_td_error = 0.0
             n_steps = 0
             done = False
@@ -77,12 +80,16 @@ class AgentTD(BaseAgent):
                 state = next_state
                 action = next_action
                 total_reward += reward
+                discounted_reward += (self.gamma ** n_steps) * reward
                 total_td_error += abs(td_error)
                 n_steps += 1
 
             self.decay_epsilon()
 
+            mean_reward = total_reward / max(n_steps, 1)
             history["episode_rewards"].append(total_reward)
+            history["episode_mean_rewards"].append(mean_reward)
+            history["episode_discounted_rewards"].append(discounted_reward)
             history["episode_portfolio_values"].append(info["portfolio_value"])
             history["episode_epsilons"].append(self.epsilon)
             history["episode_alphas"].append(self.alpha)

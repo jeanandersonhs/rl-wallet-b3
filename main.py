@@ -158,6 +158,12 @@ def main():
     training_path = os.path.join(RESULTS_DIR, "training_history.json")
     training_data = {
         "episode_rewards": [float(x) for x in history["episode_rewards"]],
+        "episode_mean_rewards": [
+            float(x) for x in history["episode_mean_rewards"]
+        ],
+        "episode_discounted_rewards": [
+            float(x) for x in history["episode_discounted_rewards"]
+        ],
         "episode_portfolio_values": [
             float(x) for x in history["episode_portfolio_values"]
         ],

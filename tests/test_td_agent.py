@@ -257,6 +257,8 @@ class TestTraining:
         history = agent.train(env, n_episodes=1, log_interval=1)
 
         assert "episode_rewards" in history
+        assert "episode_mean_rewards" in history
+        assert "episode_discounted_rewards" in history
         assert "episode_portfolio_values" in history
         assert "episode_epsilons" in history
         assert "episode_alphas" in history
@@ -264,6 +266,8 @@ class TestTraining:
         assert "n_states_visited" in history
 
         assert len(history["episode_rewards"]) == 1
+        assert len(history["episode_mean_rewards"]) == 1
+        assert len(history["episode_discounted_rewards"]) == 1
         assert len(history["episode_portfolio_values"]) == 1
 
     def test_train_multiple_episodes(self, agent, env):

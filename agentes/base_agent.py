@@ -27,14 +27,14 @@ class BaseAgent:
         n_sim_episodes: int = 10,
         seed: int = 42,
     ):
-        self.n_actions = env.n_actions
-        self.n_bins = n_bins
-        self.alpha = alpha
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.epsilon_min = epsilon_min
-        self.epsilon_decay = epsilon_decay
-        self.seed = seed
+        self.n_actions = env.n_actions # numero de acoes discretas possiveis (27 no caso do PortfolioEnv)
+        self.n_bins = n_bins   # numero de bins para discretizacao de cada feature do estado
+        self.alpha = alpha # taxa de aprendizado (learning rate)
+        self.gamma = gamma # fator de desconto
+        self.epsilon = epsilon # taxa de exploracao inicial
+        self.epsilon_min = epsilon_min # taxa de exploracao minima
+        self.epsilon_decay = epsilon_decay # fator de decaimento da taxa de exploracao
+        self.seed = seed    
         self.rng = np.random.RandomState(seed)
 
         print(
