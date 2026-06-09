@@ -31,7 +31,7 @@ from agentes.TD_learning import AgentTD
 @pytest.fixture
 def sample_df():
     """
-    Cria um DataFrame sintético com 60 dias de dados (> window_size=20).
+    Cria um DataFrame sintético com 60 dias de dados.
     Estrutura idêntica ao treino.csv real.
     """
     np.random.seed(42)
@@ -66,7 +66,7 @@ def sample_df():
 @pytest.fixture
 def env(sample_df):
     """Cria um PortfolioEnv com dados sintéticos."""
-    return PortfolioEnv(sample_df, window_size=20)
+    return PortfolioEnv(sample_df)
 
 
 @pytest.fixture
@@ -99,7 +99,7 @@ class TestAgentCreation:
         assert agent.alpha == 0.1
         assert agent.gamma == 0.99
         assert agent.epsilon == 1.0
-        assert len(agent.bins) == 18  # 18 features do estado
+        assert len(agent.bins) == 6  # 6 features do estado
         assert len(agent.q_table) == 0  # Q-table começa vazia
 
     def test_bins_computed(self, agent):
@@ -118,7 +118,7 @@ class TestDiscretization:
         state = env.reset()
         discrete = agent.discretize(state)
         assert isinstance(discrete, tuple)
-        assert len(discrete) == 18  # 18 features
+        assert len(discrete) == 6  # 6 features
 
     def test_discretize_values_are_ints(self, agent, env):
         """Cada elemento da tupla discreta é um inteiro."""
@@ -238,16 +238,15 @@ class TestDecay:
     def test_epsilon_decay(self, agent):
         """ε decai a cada chamada."""
         eps_before = agent.epsilon
-        agent.decay_hyperparams()
+        agent.decay_epsilon()
         assert agent.epsilon < eps_before
         assert agent.epsilon >= agent.epsilon_min
 
-    def test_alpha_decay(self, agent):
-        """α decai a cada chamada."""
+    def test_alpha_fixed(self, agent):
+        """α permanece fixo; apenas ε decai."""
         alpha_before = agent.alpha
-        agent.decay_hyperparams()
-        assert agent.alpha < alpha_before
-        assert agent.alpha >= agent.alpha_min
+        agent.decay_epsilon()
+        assert agent.alpha == alpha_before
 
 
 class TestTraining:

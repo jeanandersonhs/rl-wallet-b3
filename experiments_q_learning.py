@@ -12,8 +12,6 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), "resultados")
 BASE_AGENT_CONFIG = {
     "n_bins": 5,
     "alpha": 0.1,
-    "alpha_min": 0.01,
-    "alpha_decay": 0.995,
     "gamma": 0.99,
     "epsilon": 1.0,
     "epsilon_min": 0.01,
@@ -25,13 +23,9 @@ BASE_AGENT_CONFIG = {
 BASE_ENV_CONFIG = {
     "initial_balance": 100_000.0,
     "transaction_cost": 0.001,
-    "window_size": 20,
     "weight_delta": 0.10,
-    "lambda_transaction": 0.1,
-    "alpha_diversification": 0.2,
-    "beta_drawdown": 2.0,
-    "beta_concentration": 1.0,
-    "drawdown_threshold": 0.10,
+    "alpha_diversification": 0.001,
+    "beta_concentration": 0.002,
     "concentration_threshold": 0.60,
 }
 
@@ -87,14 +81,13 @@ def main():
         res = run_experiment(train_df, test_df, BASE_ENV_CONFIG, agent_config, run_name)
         all_results.append(res)
         
-    # 2. Variando epsilon_decay e alpha_decay
-    print("\n\n=== EXPERIMENTO 2: Variação de Taxas de Decaimento (epsilon, alpha) ===")
+    # 2. Variando epsilon_decay
+    print("\n\n=== EXPERIMENTO 2: Variação de epsilon_decay ===")
     decays = [0.99, 0.995, 0.999]
-    for eps_dec, alp_dec in itertools.product(decays, decays):
+    for eps_dec in decays:
         agent_config = BASE_AGENT_CONFIG.copy()
         agent_config["epsilon_decay"] = eps_dec
-        agent_config["alpha_decay"] = alp_dec
-        run_name = f"epsDecay_{eps_dec}_alpDecay_{alp_dec}"
+        run_name = f"epsDecay_{eps_dec}"
         res = run_experiment(train_df, test_df, BASE_ENV_CONFIG, agent_config, run_name)
         all_results.append(res)
         
@@ -109,6 +102,18 @@ def main():
         run_name = f"txCost_{cost}_wDelta_{delta}"
         
         # Para testar adequadamente o impacto no agente, precisamos treiná-lo e avaliá-lo no novo ambiente
+        res = run_experiment(train_df, test_df, env_config, BASE_AGENT_CONFIG, run_name)
+        all_results.append(res)
+
+    # 4. Variando regularizadores de diversificacao e concentracao
+    print("\n\n=== EXPERIMENTO 4: Variação de Regularizadores ===")
+    div_values = [0.0005, 0.001, 0.002]
+    conc_values = [0.001, 0.002, 0.004]
+    for alpha_div, beta_conc in itertools.product(div_values, conc_values):
+        env_config = BASE_ENV_CONFIG.copy()
+        env_config["alpha_diversification"] = alpha_div
+        env_config["beta_concentration"] = beta_conc
+        run_name = f"div_{alpha_div}_conc_{beta_conc}"
         res = run_experiment(train_df, test_df, env_config, BASE_AGENT_CONFIG, run_name)
         all_results.append(res)
         

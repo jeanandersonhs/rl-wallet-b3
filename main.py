@@ -18,6 +18,7 @@ import json
 import numpy as np
 
 from helpers.data_loader import load_train_data, load_test_data
+from helpers.benchmarks import compute_benchmarks
 from ambiente.portfolio_env import PortfolioEnv
 from agentes.Q_learning import AgentQLearning
 
@@ -30,8 +31,6 @@ from agentes.Q_learning import AgentQLearning
 AGENT_CONFIG = {
     "n_bins": 5,
     "alpha": 0.1,
-    "alpha_min": 0.01,
-    "alpha_decay": 0.995,
     "gamma": 0.99,
     "epsilon": 1.0,
     "epsilon_min": 0.01,
@@ -44,85 +43,15 @@ AGENT_CONFIG = {
 ENV_CONFIG = {
     "initial_balance": 100_000.0,
     "transaction_cost": 0.001,
-    "window_size": 20,
     "weight_delta": 0.10,
-    "lambda_transaction": 0.1,
-    "alpha_diversification": 0.2,
-    "beta_drawdown": 2.0,
-    "beta_concentration": 1.0,
-    "drawdown_threshold": 0.10,
+    "alpha_diversification": 0.001,
+    "beta_concentration": 0.002,
     "concentration_threshold": 0.60,
 }
 
 N_EPISODES = 500
 LOG_INTERVAL = 50
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "resultados")
-
-
-# ═════════════════════════════════════════════════════════════════════════
-# BENCHMARKS
-# ═════════════════════════════════════════════════════════════════════════
-
-def compute_benchmarks(test_df: "pd.DataFrame", initial_balance: float) -> dict:
-    """
-    Calcula retornos dos benchmarks no período de teste.
-
-    Benchmarks:
-        - Buy & Hold (1/3 em cada ativo)
-        - 100% CDI (taxa livre de risco)
-
-    Parameters
-    ----------
-    test_df : pd.DataFrame
-        DataFrame do período de teste.
-    initial_balance : float
-        Capital inicial.
-
-    Returns
-    -------
-    dict
-        Dicionário com métricas de cada benchmark.
-    """
-    n = len(test_df)
-
-    # --- Buy & Hold (1/3 cada) ---
-    ret_itub4 = test_df["retorno_ITUB4"].values
-    ret_bova11 = test_df["retorno_BOVA11"].values
-    ret_bbas3 = test_df["retorno_BBAS3"].values
-
-    bh_returns = (ret_itub4 + ret_bova11 + ret_bbas3) / 3.0
-    bh_value = initial_balance
-    bh_values = [bh_value]
-    for r in bh_returns:
-        bh_value *= (1.0 + r)
-        bh_values.append(bh_value)
-
-    bh_total_return = (bh_values[-1] - initial_balance) / initial_balance
-
-    # --- 100% CDI ---
-    cdi_returns = test_df["CDI_decimal"].values
-    cdi_value = initial_balance
-    cdi_values = [cdi_value]
-    for r in cdi_returns:
-        cdi_value *= (1.0 + r)
-        cdi_values.append(cdi_value)
-
-    cdi_total_return = (cdi_values[-1] - initial_balance) / initial_balance
-
-    benchmarks = {
-        "buy_hold": {
-            "values": bh_values,
-            "total_return": bh_total_return,
-            "final_value": bh_values[-1],
-        },
-        "cdi": {
-            "values": cdi_values,
-            "total_return": cdi_total_return,
-            "final_value": cdi_values[-1],
-        },
-    }
-
-    return benchmarks
 
 
 # ═════════════════════════════════════════════════════════════════════════

@@ -39,15 +39,15 @@ def test_instanciacao():
     env = _load_env()
     assert env.n_assets == 3
     assert env.n_actions == 27
-    assert env.observation_space_size == 18
+    assert env.observation_space_size == 6
     print("[OK] test_instanciacao")
 
 
 def test_reset():
-    """2. Reset retorna array shape (18,) com valores finitos."""
+    """2. Reset retorna array shape (6,) com valores finitos."""
     env = _load_env()
     obs = env.reset()
-    assert obs.shape == (18,), f"Shape esperado (18,), recebido {obs.shape}"
+    assert obs.shape == (6,), f"Shape esperado (6,), recebido {obs.shape}"
     assert np.all(np.isfinite(obs)), "Observação contém NaN ou Inf"
     print("[OK] test_reset")
 
@@ -60,9 +60,10 @@ def test_step_manter():
     # Ação 13 = (MANTER, MANTER, MANTER) → deltas = [0, 0, 0]
     obs2, reward, done, info = env.step(13)
 
-    assert obs2.shape == (18,), f"Shape esperado (18,), recebido {obs2.shape}"
+    assert obs2.shape == (6,), f"Shape esperado (6,), recebido {obs2.shape}"
     assert np.all(np.isfinite(obs2)), "Observação contém NaN ou Inf"
     assert isinstance(reward, (float, np.floating)), "Reward deve ser float"
+    assert np.isfinite(reward), "Reward deve ser finito"
     assert isinstance(done, bool), "Done deve ser bool"
     assert "portfolio_value" in info
     assert "weights" in info
